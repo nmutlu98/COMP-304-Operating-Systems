@@ -375,13 +375,14 @@ int process_command(struct command_t *command)
 			command->args[0]=exec_path; //for execv to work the first element of the args should be the path to executable
 			if(access(exec_path,X_OK)==0){//access checks whether there is such file in the given path X_OK means executable files
 				execv(exec_path,command->args);//when we find the executable we execute it 
+				exit(0);//#
 			} 
 			token = strtok(NULL,":"); //execv only returns if there is an error. So after execution this lines wont be executed
 			command->args[0] = command->name; //we assing command->args the filename as a value in order to correctly check following possible paths   
 		}
 
 		//execvp(command->name, command->args); // exec+args+path
-		exit(0);
+	
 		/// TODO: do your own exec with path resolving using execv()
 	}
 	else

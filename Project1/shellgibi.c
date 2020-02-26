@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <string.h>
 const char * sysname = "shellgibi";
 
 enum return_codes {
@@ -367,19 +368,26 @@ int process_command(struct command_t *command)
 		//it gives a full string in which directories are seperated by a ':' in between 
 		char *path = getenv("PATH"); 
 		char *token = strtok(path,":");
-		while(token != NULL){
-			char *exec_path[500] = {'\0'}; //for each possible directory equating exec path to empty string which will eventually store the possible executable path
-			strcat(exec_path,token); //get one path from the given paths and copy it to exec_path
-			strcat(exec_path,"/");
-			strcat(exec_path,command->args[0]);//concatenate exec path with the executable name
-			command->args[0]=exec_path; //for execv to work the first element of the args should be the path to executable
-			if(access(exec_path,X_OK)==0){//access checks whether there is such file in the given path X_OK means executable files
-				execv(exec_path,command->args);//when we find the executable we execute it 
-				exit(0);//#
-			} 
-			token = strtok(NULL,":"); //execv only returns if there is an error. So after execution this lines wont be executed
-			command->args[0] = command->name; //we assing command->args the filename as a value in order to correctly check following possible paths   
-		}
+		char *ptr = strchr(command->name,'/');
+		if(ptr != NULL){
+			printf("%s\n","burdayım" );
+			execv(command->name,command->args);//when we find the executable we execute it 
+			exit(0);//#
+
+		} else{
+			while(token != NULL){
+				char *exec_path[500] = {'\0'}; //for each possible directory equating exec path to empty string which will eventually store the possible executable path
+				strcat(exec_path,token); //get one path from the given paths and copy it to exec_path
+				strcat(exec_path,"/");
+				strcat(exec_path,command->args[0]);//concatenate exec path with the executable name
+				command->args[0]=exec_path; //for execv to work the first element of the args should be the path to executable
+				if(access(exec_path,X_OK)==0){//access checks whether there is such file in the given path X_OK means executable files
+					execv(exec_path,command->args);//when we find the executable we execute it 
+					exit(0);//#
+				} 
+				token = strtok(NULL,":"); //execv only returns if there is an error. So after execution this lines wont be executed
+				command->args[0] = command->name; //we assing command->args the filename as a value in order to correctly check following possible paths   
+		}}
 
 		//execvp(command->name, command->args); // exec+args+path
 	

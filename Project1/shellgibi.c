@@ -7,6 +7,9 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
+#define STDIN 0
+#define STDOUT 1
 const char * sysname = "shellgibi";
 
 enum return_codes {
@@ -364,13 +367,30 @@ int process_command(struct command_t *command)
 		// set args[arg_count-1] (last) to NULL
 		command->args[command->arg_count-1]=NULL;
 
+		if(command->redirects[0] != NULL){
+			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY);
+			if(file_dsc < 0) 
+        		printf("Error opening the file\n", command->redirects[0]); 
+			dup2(file_dsc,STDIN);
+		}
+		if(command->redirects[1] != NULL){
+			int file_dsc = open(command->redirects[1], O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT);
+			if(file_dsc < 0) 
+        		printf("Error opening the file\n", command->redirects[1]); 
+			dup2(file_dsc,STDOUT);
+		}
+		if(command->redirects[2] != NULL){
+			int file_dsc = open(command->redirects[2],O_WRONLY | O_CREAT | O_RDONLY | O_APPEND);
+			if(file_dsc < 0) 
+        		printf("Error opening the file\n",command->redirects[2]); 
+			dup2(file_dsc,STDOUT);
+		}
 		//path gives us the directories to search for executables
 		//it gives a full string in which directories are seperated by a ':' in between 
 		char *path = getenv("PATH"); 
 		char *token = strtok(path,":");
 		char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
-			printf("%s\n","burdayım" );
 			execv(command->name,command->args);//when we find the executable we execute it 
 			exit(0);//#
 

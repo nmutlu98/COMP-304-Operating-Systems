@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #define STDIN 0
 #define STDOUT 1
+#define READ_END 0
+#define WRITE_END 1
 const char * sysname = "shellgibi";
 
 enum return_codes {
@@ -365,25 +367,47 @@ int process_command(struct command_t *command)
 		// set args[0] as a copy of name
 		command->args[0]=strdup(command->name);
 		// set args[arg_count-1] (last) to NULL
+		// stdout of these should be the stdin of the next one 		
 		command->args[command->arg_count-1]=NULL;
 
 		if(command->redirects[0] != NULL){
-			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY);
+			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY | O_APPEND,0666); //added necessary permissions for all user groups
 			if(file_dsc < 0) 
         		printf("Error opening the file\n", command->redirects[0]); 
 			dup2(file_dsc,STDIN);
 		}
 		if(command->redirects[1] != NULL){
-			int file_dsc = open(command->redirects[1], O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT);
+			int file_dsc = open(command->redirects[1], O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT,0666);
 			if(file_dsc < 0) 
         		printf("Error opening the file\n", command->redirects[1]); 
 			dup2(file_dsc,STDOUT);
 		}
 		if(command->redirects[2] != NULL){
-			int file_dsc = open(command->redirects[2],O_WRONLY | O_CREAT | O_RDONLY | O_APPEND);
+			int file_dsc = open(command->redirects[2],O_WRONLY | O_CREAT | O_RDONLY | O_APPEND, 0666);
 			if(file_dsc < 0) 
         		printf("Error opening the file\n",command->redirects[2]); 
 			dup2(file_dsc,STDOUT);
+		}
+		if(command->next != NULL){
+			int fd[2];
+			if(pipe(fd)<0){
+				fprintf(stderr, "%s\n","Pipe failed");
+				exit(1);
+			} 
+			pid_t pid_next = fork();
+			if(pid_next<0){
+				fprintf(stderr, "%s\n","Pipe failed");
+				exit(1);
+			}
+			if(pid_next>0){
+				close(fd[WRITE_END]);
+				dup2(fd[READ_END],STDIN);
+				process_command(command->next);
+				exit(0);
+			} else{
+				close(fd[READ_END]);
+				dup2(fd[WRITE_END],STDOUT);
+			}
 		}
 		//path gives us the directories to search for executables
 		//it gives a full string in which directories are seperated by a ':' in between 
@@ -407,7 +431,8 @@ int process_command(struct command_t *command)
 				} 
 				token = strtok(NULL,":"); //execv only returns if there is an error. So after execution this lines wont be executed
 				command->args[0] = command->name; //we assing command->args the filename as a value in order to correctly check following possible paths   
-		}}
+		}
+	}
 
 		//execvp(command->name, command->args); // exec+args+path
 	

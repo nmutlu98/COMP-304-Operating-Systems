@@ -350,17 +350,22 @@ int process_command(struct command_t *command)
     		fprintf(stderr, "%s\n","Couldnt get the user" );
     		exit(1);
     	}
+
     	char *cmd = "ps";
-		char *argv[5];
-		argv[0] = "ps";
-		argv[1] = "-u";
-		argv[2] = user;
-		argv[3] = "o";
-		argv[4] = "pid,stat,ucmd";
+    	strcpy(command->name,cmd);
+		command->args = (char **)malloc(sizeof(char *)*4) ;
+		command->args[0] = (char *)malloc(1024);
+		strcpy(command->args[0], "-u");
+		command->args[1] = (char *)malloc(1024);
+		strcpy(command->args[1], user);
+		command->args[2] = (char *)malloc(1024);
+		strcpy(command->args[2], "o");
+		command->args[3] = (char *)malloc(1024);
+		strcpy(command->args[3], "pid,stat,ucmd");
+		command->arg_count = 4; 
 		
-		
-		execvp(cmd,argv);
-		return SUCCESS;
+		//execvp(cmd,args);
+		//return SUCCESS;
 	}
 
 	pid_t pid=fork();

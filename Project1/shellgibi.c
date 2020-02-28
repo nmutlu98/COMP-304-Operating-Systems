@@ -344,6 +344,24 @@ int process_command(struct command_t *command)
 			return SUCCESS;
 		}
 	}
+	if(strcmp(command->name, "myjobs") == 0){
+		char *user=getenv("USER");
+    	if(user==NULL){
+    		fprintf(stderr, "%s\n","Couldnt get the user" );
+    		exit(1);
+    	}
+    	char *cmd = "ps";
+		char *argv[5];
+		argv[0] = "ps";
+		argv[1] = "-u";
+		argv[2] = user;
+		argv[3] = "o";
+		argv[4] = "pid,stat,ucmd";
+		
+		
+		execvp(cmd,argv);
+		return SUCCESS;
+	}
 
 	pid_t pid=fork();
 	if (pid==0) // child
@@ -371,7 +389,7 @@ int process_command(struct command_t *command)
 		command->args[command->arg_count-1]=NULL;
 
 		if(command->redirects[0] != NULL){
-			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY | O_APPEND,0666); //added necessary permissions for all user groups
+			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY | O_APPEND,0666);
 			if(file_dsc < 0) 
         		printf("Error opening the file\n", command->redirects[0]); 
 			dup2(file_dsc,STDIN);

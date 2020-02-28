@@ -355,16 +355,16 @@ int process_command(struct command_t *command)
 
     	char *cmd = "ps";
     	strcpy(command->name,cmd);
-		command->args = (char **)malloc(sizeof(char *)*2) ;
+		command->args = (char **)malloc(sizeof(char *)*4) ;
 		command->args[0] = (char *)malloc(1024);
-		/*strcpy(command->args[0], "-u");
+		strcpy(command->args[0], "-u");
 		command->args[1] = (char *)malloc(1024);
-		strcpy(command->args[1], user);*/
-		command->args[0] = (char *)malloc(1024);
-		strcpy(command->args[0], "--format");
-		command->args[1] = (char *)malloc(1024);
-		strcpy(command->args[1], "pid,stat,ucmd");
-		command->arg_count = 2; 
+		strcpy(command->args[1], user);
+		command->args[2] = (char *)malloc(1024);
+		strcpy(command->args[2], "--format");
+		command->args[3] = (char *)malloc(1024);
+		strcpy(command->args[3], "pid,stat,ucmd");
+		command->arg_count = 4; 
 		
 		//execvp(cmd,args);
 		//return SUCCESS;
@@ -379,11 +379,29 @@ int process_command(struct command_t *command)
 	if(strcmp(command->name,"mybg") == 0){
 		int res = kill(atoi(command->args[0]),SIGCONT);
 		if(res == -1)
-			printf("%s\n","Kill cont failed" );
+			printf("%s\n","Kill cont bg failed" );
 		return SUCCESS;
 	}
 	if(strcmp(command->name,"myfg") == 0){
-			
+		pid_t pid_fg = fork();
+		if(pid_fg < 0){
+			fprintf(stderr,"%s\n","Fg fork failed" );
+			exit(1);
+		}
+		if(pid_fg == 0){
+			int res = kill(atoi(command->args[0]),SIGCONT);
+		if(res == -1)
+			printf("%s\n","Kill cont fg failed" );
+		exit(0);
+		} else{
+			char status[1024];
+			pid_t return_pid = waitpid(atoi(command->args[0]), &status, 0); 
+			while(return_pid == 0) {
+			   sleep(1);
+			} 
+			wait(NULL);
+			return SUCCESS;
+		}
 	}
 
 	pid_t pid=fork();

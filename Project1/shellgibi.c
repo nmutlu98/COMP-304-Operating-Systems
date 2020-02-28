@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/types.h>
 #define STDIN 0
 #define STDOUT 1
 #define READ_END 0
@@ -353,19 +355,35 @@ int process_command(struct command_t *command)
 
     	char *cmd = "ps";
     	strcpy(command->name,cmd);
-		command->args = (char **)malloc(sizeof(char *)*4) ;
+		command->args = (char **)malloc(sizeof(char *)*2) ;
 		command->args[0] = (char *)malloc(1024);
-		strcpy(command->args[0], "-u");
+		/*strcpy(command->args[0], "-u");
 		command->args[1] = (char *)malloc(1024);
-		strcpy(command->args[1], user);
-		command->args[2] = (char *)malloc(1024);
-		strcpy(command->args[2], "o");
-		command->args[3] = (char *)malloc(1024);
-		strcpy(command->args[3], "pid,stat,ucmd");
-		command->arg_count = 4; 
+		strcpy(command->args[1], user);*/
+		command->args[0] = (char *)malloc(1024);
+		strcpy(command->args[0], "--format");
+		command->args[1] = (char *)malloc(1024);
+		strcpy(command->args[1], "pid,stat,ucmd");
+		command->arg_count = 2; 
 		
 		//execvp(cmd,args);
 		//return SUCCESS;
+	}
+	if(strcmp(command->name,"pause") == 0){ 
+		int res = kill(atoi(command->args[0]),SIGSTOP);
+		if(res == -1)
+			printf("%s\n","Kill stop failed" );
+		return SUCCESS;
+		
+	}
+	if(strcmp(command->name,"mybg") == 0){
+		int res = kill(atoi(command->args[0]),SIGCONT);
+		if(res == -1)
+			printf("%s\n","Kill cont failed" );
+		return SUCCESS;
+	}
+	if(strcmp(command->name,"myfg") == 0){
+			
 	}
 
 	pid_t pid=fork();

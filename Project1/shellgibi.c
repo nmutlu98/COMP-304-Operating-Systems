@@ -330,7 +330,64 @@ int main()
 }
 int process_command(struct command_t *command)
 {
+	//ls /bin | grep slee | wc -w
+	char buf[1024];
+	FILE *file;
 	int r;
+	if(command->auto_complete){
+		char *ptr = strchr(command->name,'/');
+		if(ptr != NULL){
+			char cmd[1024];
+			if(command->name[0] == '.' && command->name[1] == '/'){
+				strcpy(cmd,"/bin/ls | /bin/grep ");
+				char buffer[1024];
+				strncpy(buffer, command->name+2,1024);
+				buffer[(int)(strchr(buffer,'?')-buffer)] = '\0';
+				strcat(cmd,buffer);
+				if((file = popen(cmd,"r"))== NULL){
+				printf("%s\n","Error openning pipe" );
+				exit(-1);
+				}
+				 while (fgets(buf, 1024, file) != NULL) {
+	       		 	/*char full_name[1024];
+	       		 	strcpy(full_name,"./");
+	       		 	strcat(full_name,buf);
+	       		 	sprintf(command->name,"%s",full_name);*/
+	       		 	printf("\n %s",buf);
+	   			 }	
+			} else{ // /bin/ls mesela ??? --> for absolute directories should it complete it too
+
+			}
+			
+			
+
+		} else{ //AFTER new prompt shows up it doesnt work.
+			char *path = getenv("PATH"); 
+			char *token = strtok(path,":");
+			while(token != NULL){
+				char exec_path[1024] = "/bin/ls "; 
+				strcat(exec_path,token); 
+				strcat(exec_path," | ");
+				strcat(exec_path,"/bin/grep ");
+				strcat(exec_path,command->name);
+			
+				exec_path[(int)(strchr(exec_path,'?')-exec_path)] = '\0';
+				if((file = popen(exec_path,"r"))== NULL){
+					printf("%s\n","Error openning pipe" );
+					exit(-1);
+				}
+
+				 while (fgets(buf, 1024, file) != NULL) {
+	       		 // Do whatever you want here...
+	        		printf("\n %s", buf);
+	   			 }	
+				token = strtok(NULL,":"); 
+				
+			}
+			
+		}
+		return SUCCESS;
+	}
 	if (strcmp(command->name, "")==0) return SUCCESS;
 
 	if (strcmp(command->name, "exit")==0)

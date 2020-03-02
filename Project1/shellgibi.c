@@ -403,6 +403,33 @@ void auto_complete(struct command_t *command){
 			}}
 			
 }
+int execute_command(struct command_t *command){
+	char *path = getenv("PATH"); 
+		char modified[1024];
+		strcpy(modified,path);
+		char *token = strtok(modified,":");
+		char *ptr = strchr(command->name,'/');
+		if(ptr != NULL){
+			execv(command->name,command->args);//when we find the executable we execute it 
+			exit(0);//#
+
+		} else{
+			while(token != NULL){
+				char *exec_path[500] = {'\0'}; //for each possible directory equating exec path to empty string which will eventually store the possible executable path
+				strcat(exec_path,token); //get one path from the given paths and copy it to exec_path
+				strcat(exec_path,"/");
+				strcat(exec_path,command->args[0]);//concatenate exec path with the executable name
+				command->args[0]=exec_path; //for execv to work the first element of the args should be the path to executable
+				if(access(exec_path,X_OK)==0){//access checks whether there is such file in the given path X_OK means executable files
+					execv(exec_path,command->args);//when we find the executable we execute it 
+					exit(0);//#
+				} 
+				token = strtok(NULL,":"); //execv only returns if there is an error. So after execution this lines wont be executed
+				command->args[0] = command->name; //we assing command->args the filename as a value in order to correctly check following possible paths   
+		}
+	}
+	return SUCCESS;
+}
 int process_command(struct command_t *command)
 {
 	int r;
@@ -445,9 +472,6 @@ int process_command(struct command_t *command)
 		command->args[3] = (char *)malloc(1024);
 		strcpy(command->args[3], "pid,stat,ucmd");
 		command->arg_count = 4; 
-		
-		//execvp(cmd,args);
-		//return SUCCESS;
 	}
 	if(strcmp(command->name,"pause") == 0){ 
 		int res = kill(atoi(command->args[0]),SIGSTOP);
@@ -550,30 +574,11 @@ int process_command(struct command_t *command)
 		}
 		//path gives us the directories to search for executables
 		//it gives a full string in which directories are seperated by a ':' in between 
-		char *path = getenv("PATH"); 
-		char modified[1024];
-		strcpy(modified,path);
-		char *token = strtok(modified,":");
-		char *ptr = strchr(command->name,'/');
-		if(ptr != NULL){
-			execv(command->name,command->args);//when we find the executable we execute it 
-			exit(0);//#
-
-		} else{
-			while(token != NULL){
-				char *exec_path[500] = {'\0'}; //for each possible directory equating exec path to empty string which will eventually store the possible executable path
-				strcat(exec_path,token); //get one path from the given paths and copy it to exec_path
-				strcat(exec_path,"/");
-				strcat(exec_path,command->args[0]);//concatenate exec path with the executable name
-				command->args[0]=exec_path; //for execv to work the first element of the args should be the path to executable
-				if(access(exec_path,X_OK)==0){//access checks whether there is such file in the given path X_OK means executable files
-					execv(exec_path,command->args);//when we find the executable we execute it 
-					exit(0);//#
-				} 
-				token = strtok(NULL,":"); //execv only returns if there is an error. So after execution this lines wont be executed
-				command->args[0] = command->name; //we assing command->args the filename as a value in order to correctly check following possible paths   
+		int res = execute_command(command);
+		if(res != SUCCESS){
+			fprintf(stderr, "%s\n","Error happened while executing" );
+			exit(1);
 		}
-	}
 
 		//execvp(command->name, command->args); // exec+args+path
 	

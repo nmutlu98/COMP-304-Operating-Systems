@@ -328,14 +328,10 @@ int main()
 	printf("\n");
 	return 0;
 }
-int process_command(struct command_t *command)
-{
-	//ls /bin | grep slee | wc -w
+void auto_complete(struct command_t *command){
 	char buf[1024];
 	FILE *file;
-	int r;
-	if(command->auto_complete){
-		char *ptr = strchr(command->name,'/');
+	char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
 			char cmd[1024];
 			if(command->name[0] == '.' && command->name[1] == '/'){
@@ -362,30 +358,57 @@ int process_command(struct command_t *command)
 			
 
 		} else{ //AFTER new prompt shows up it doesnt work.
-			char *path = getenv("PATH"); 
-			char *token = strtok(path,":");
+			char *path = getenv("PATH");  //TRANSLATE THOSE INTO THE PROCESS COMMAND // MYJOBS MYBG MYFG Yİ DE DESTEKLEMELİ //EXECUTE COMMAND METHODU YAZ
+			char modified[1024];
+		    strcpy(modified,path);
+			char *token = strtok(modified,":");
+			char name[1024];
+			strcpy(name,command->name);
+			name[(int)(strchr(name,'?')-name)] = '\n';
 			while(token != NULL){
-				char exec_path[1024] = "/bin/ls "; 
+				char exec_path[1024]; 
+				strcpy(exec_path,"/bin/ls "); 
 				strcat(exec_path,token); 
 				strcat(exec_path," | ");
 				strcat(exec_path,"/bin/grep ");
 				strcat(exec_path,command->name);
-			
+				
 				exec_path[(int)(strchr(exec_path,'?')-exec_path)] = '\0';
 				if((file = popen(exec_path,"r"))== NULL){
 					printf("%s\n","Error openning pipe" );
 					exit(-1);
 				}
-
+				int i = 0;
+				bool flag = false;
+				char only_possible[1024];
 				 while (fgets(buf, 1024, file) != NULL) {
-	       		 // Do whatever you want here...
-	        		printf("\n %s", buf);
-	   			 }	
+	       		    if(i>1)
+	       		    	printf("%s\n",only_possible);
+	       		    strcpy(only_possible,buf);
+	       		    i+=1;
+	       		    if(strcmp(buf,name) == 0)
+	       		    	flag = true;
+
+	   			 }
+	   			 if(i==1 && flag){ 
+	   			 	struct command_t *command=malloc(sizeof(struct command_t));
+					memset(command, 0, sizeof(struct command_t)); 
+					command->name = "ls";
+					process_command(command);
+	   			 } else if(i>1){
+	   			 	printf("%s\n", only_possible); 
+	   			 }
 				token = strtok(NULL,":"); 
 				
-			}
+			}}
 			
-		}
+}
+int process_command(struct command_t *command)
+{
+	int r;
+	if(command->auto_complete){
+		
+		auto_complete(command);
 		return SUCCESS;
 	}
 	if (strcmp(command->name, "")==0) return SUCCESS;
@@ -528,7 +551,9 @@ int process_command(struct command_t *command)
 		//path gives us the directories to search for executables
 		//it gives a full string in which directories are seperated by a ':' in between 
 		char *path = getenv("PATH"); 
-		char *token = strtok(path,":");
+		char modified[1024];
+		strcpy(modified,path);
+		char *token = strtok(modified,":");
 		char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
 			execv(command->name,command->args);//when we find the executable we execute it 

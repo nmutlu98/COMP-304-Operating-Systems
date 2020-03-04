@@ -15,7 +15,13 @@
 #define READ_END 0
 #define WRITE_END 1
 const char * sysname = "shellgibi";
-
+//HOW TO SUPPORT NEW MTHODS
+//MYJOB MYFG IMPLEMENTATIONS + AUTOCOMPLETION
+//WE SHOULDNT EXECUTE IT AFTER COMPLETION
+// Those direction error
+//Temporary file problem
+// should it support /bin/gre tab
+//MYBG dont wait for it to be terminated just wait for changing state.
 enum return_codes {
 	SUCCESS = 0,
 	EXIT = 1,
@@ -330,19 +336,30 @@ int main()
 }
 void auto_complete(struct command_t *command){
 	char buf[1024];
+	int ac_pipe[2];
 	FILE *file;
+	if(pipe(ac_pipe) < 0){
+		fprintf(stderr, "%s\n","an error happened in autocomplete pipe" );
+		exit(-1);
+	}
 	char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
 			char cmd[1024];
 			if(command->name[0] == '.' && command->name[1] == '/'){
-				strcpy(cmd,"/bin/ls | /bin/grep ");
+				strcpy(cmd,"ls | grep ");
 				char buffer[1024];
 				strncpy(buffer, command->name+2,1024);
 				buffer[(int)(strchr(buffer,'?')-buffer)] = '\0';
 				strcat(cmd,buffer);
-				if((file = popen(cmd,"r"))== NULL){
-				printf("%s\n","Error openning pipe" );
-				exit(-1);
+				struct command_t *command=malloc(sizeof(struct command_t));
+				memset(command, 0, sizeof(struct command_t)); 
+				parse_command(cmd, command);
+				command->redirects[1]=malloc(sizeof(char *));
+				strcpy(command->redirects[1], "temporary.txt");
+				process_command(command);
+				if((file = fopen("temporary.txt","r")) == NULL){
+					printf("%s\n","Error openning pipe" );
+					exit(-1);
 				}
 				 while (fgets(buf, 1024, file) != NULL) {
 	       		 	/*char full_name[1024];
@@ -350,15 +367,16 @@ void auto_complete(struct command_t *command){
 	       		 	strcat(full_name,buf);
 	       		 	sprintf(command->name,"%s",full_name);*/
 	       		 	printf("\n %s",buf);
-	   			 }	
+	   			 }
 			} else{ // /bin/ls mesela ??? --> for absolute directories should it complete it too
 
 			}
 			
-			
+			}
 
-		} else{ //AFTER new prompt shows up it doesnt work.
-			char *path = getenv("PATH");  //TRANSLATE THOSE INTO THE PROCESS COMMAND // MYJOBS MYBG MYFG Yİ DE DESTEKLEMELİ //EXECUTE COMMAND METHODU YAZ
+		  else{ //AFTER new prompt shows up it doesnt work.
+			char *path = getenv("PATH");  //TRANSLATE THOSE INTO THE PROCESS COMMAND // MYJOBS MYBG MYFG Yİ DE DESTEKLEMELİ 
+			printf("path %s\n",path );
 			char modified[1024];
 		    strcpy(modified,path);
 			char *token = strtok(modified,":");
@@ -367,17 +385,24 @@ void auto_complete(struct command_t *command){
 			name[(int)(strchr(name,'?')-name)] = '\n';
 			while(token != NULL){
 				char exec_path[1024]; 
-				strcpy(exec_path,"/bin/ls "); 
+				strcpy(exec_path,"ls "); 
 				strcat(exec_path,token); 
 				strcat(exec_path," | ");
-				strcat(exec_path,"/bin/grep ");
+				strcat(exec_path,"grep ");
 				strcat(exec_path,command->name);
-				
 				exec_path[(int)(strchr(exec_path,'?')-exec_path)] = '\0';
-				if((file = popen(exec_path,"r"))== NULL){
+				printf("%s\n",exec_path );
+				struct command_t *command=malloc(sizeof(struct command_t));
+				memset(command, 0, sizeof(struct command_t)); 
+				parse_command(exec_path, command);
+				command->redirects[2]=malloc(sizeof(char *));
+				strcpy(command->redirects[2], "temporary.txt"); //TEMPORARY TXT TRUNCATED OLUYOR VEYA DOLU OLUYOR  // VER NİYEYSE TEK BİR ELEMAN GELİYOR PATH DEN
+				process_command(command);
+				if((file = fopen("temporary.txt","r")) == NULL){
 					printf("%s\n","Error openning pipe" );
 					exit(-1);
 				}
+
 				int i = 0;
 				bool flag = false;
 				char only_possible[1024];
@@ -395,7 +420,7 @@ void auto_complete(struct command_t *command){
 					memset(command, 0, sizeof(struct command_t)); 
 					command->name = "ls";
 					process_command(command);
-	   			 } else if(i>1){
+	   			 } else if(i>1){ //BURDAN NİYE YAZARSIN
 	   			 	printf("%s\n", only_possible); 
 	   			 }
 				token = strtok(NULL,":"); 
@@ -532,7 +557,8 @@ int process_command(struct command_t *command)
 		// set args[arg_count-1] (last) to NULL
 		// stdout of these should be the stdin of the next one 		
 		command->args[command->arg_count-1]=NULL;
-
+		for(int i = 0; i<3; i++)
+			printf("redirects %s\n",command->redirects[i] );
 		if(command->redirects[0] != NULL){
 			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY | O_APPEND,0666);
 			if(file_dsc < 0) 

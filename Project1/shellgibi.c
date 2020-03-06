@@ -463,8 +463,8 @@ void play_alarm(struct command_t *command_given){
 		char line_to_crontab[1024];
 		char *time = command_given->args[0];
 		char *music = command_given->args[1];
-		char *minute = strtok(time,".");
-		char *hour = strtok(NULL,".");
+		char *hour = strtok(time,".");
+		char *minute = strtok(NULL,".");
 		strcpy(line_to_crontab,minute);
 		strcat(line_to_crontab," ");
 		strcat(line_to_crontab,hour);

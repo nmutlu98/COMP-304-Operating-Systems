@@ -437,46 +437,51 @@ int execute_command(struct command_t *command){
 	return SUCCESS;
 }
 void play_alarm(struct command_t *command_given){
-	int cron_pipe[2];
-	if(pipe(cron_pipe) < 0){
-		fprintf(stderr, "%s\n","Cron pipe failed" );
-		exit(1);
-	}
 	int pid = fork();
 	if(pid < 0){
 		fprintf(stderr, "%s\n","Fork failed" );
 		exit(1);
 	}
 	if(pid == 0){
-		close(cron_pipe[WRITE_END]);
-		char buf[1024];
-		dup2(cron_pipe[READ_END],STDIN);
-		const  char* prog2[] = { "crontab", "-", 0};
-        execvp(prog2[0], prog2);
-        perror("execvp of wc failed");
+		int cron_pipe[2];
+		if(pipe(cron_pipe) < 0){
+			fprintf(stderr, "%s\n","Cron pipe failed" );
+			exit(1);
+		}
+		if(fork()==0){
+			close(cron_pipe[READ_END]);
+			char cwd[1024];
+			getcwd(cwd,1024);
+			strcat(cwd,"/");
+			dup2(cron_pipe[WRITE_END],STDOUT);
+			char line_to_crontab[1024];
+			char *time = command_given->args[0];
+			char *music = command_given->args[1];
+			char *hour = strtok(time,".");
+			char *minute = strtok(NULL,".");
+			strcpy(line_to_crontab,minute);
+			strcat(line_to_crontab," ");
+			strcat(line_to_crontab,hour);
+			strcat(line_to_crontab," * * * ");
+			strcat(line_to_crontab,cwd);
+			strcat(line_to_crontab,"alarm.sh ");
+			strcat(line_to_crontab, cwd);
+			strcat(line_to_crontab, music);
+			const char* echo_command[] = { "echo", line_to_crontab, 0};
+			execvp(echo_command[0],echo_command);
+			perror("echo execv");
+			exit(1);
+		} else{
+			wait(NULL);
+			close(cron_pipe[WRITE_END]);
+			char buf[1024];
+			dup2(cron_pipe[READ_END],STDIN);
+			const  char* prog2[] = { "crontab", "-", 0};
+	        execvp(prog2[0], prog2);
+	        perror("execvp of wc failed");
+        }
 	} else{
-		close(cron_pipe[READ_END]);
-		char cwd[1024];
-		getcwd(cwd,1024);
-		strcat(cwd,"/");
-		dup2(cron_pipe[WRITE_END],STDOUT);
-		char line_to_crontab[1024];
-		char *time = command_given->args[0];
-		char *music = command_given->args[1];
-		char *hour = strtok(time,".");
-		char *minute = strtok(NULL,".");
-		strcpy(line_to_crontab,minute);
-		strcat(line_to_crontab," ");
-		strcat(line_to_crontab,hour);
-		strcat(line_to_crontab," * * * ");
-		strcat(line_to_crontab,cwd);
-		strcat(line_to_crontab,"alarm.sh ");
-		strcat(line_to_crontab, cwd);
-		strcat(line_to_crontab, music);
-		const char* echo_command[] = { "echo", line_to_crontab, 0};
-		execvp(echo_command[0],echo_command);
-		perror("echo execv");
-		exit(1);
+		wait(NULL);
 	}
 }
 int process_command(struct command_t *command)

@@ -427,6 +427,7 @@ int execute_command(struct command_t *command){
 				strcat(exec_path,command->args[0]);//concatenate exec path with the executable name
 				command->args[0]=exec_path; //for execv to work the first element of the args should be the path to executable
 				if(access(exec_path,X_OK)==0){//access checks whether there is such file in the given path X_OK means executable files
+					
 					execv(exec_path,command->args);//when we find the executable we execute it 
 					exit(0);//#
 				} 
@@ -436,6 +437,45 @@ int execute_command(struct command_t *command){
 	}
 	return SUCCESS;
 }
+void mixPlay(struct command_t *command){
+		if(fork() == 0){
+		   char cwd[1024];
+		   getcwd(cwd,1024);
+		   strcat(cwd,"/mixPlay.py");
+		   const char* play[] = { "python", cwd, command->args[0],"&", 0};
+            execvp(play[0], play);
+            perror("execvp play");
+            exit(1);
+		}
+		else
+			wait(NULL);
+
+	
+	}
+void bbc(struct command_t *command){
+	 char cwd[1024];
+	 getcwd(cwd,1024);
+	 strcat(cwd,"/parser.py");
+	 command->args[0] = (char *)malloc(1024);
+	 strcpy(command->args[0],cwd);
+	 strcpy(command->name,"python");
+	 command->arg_count = 1;
+	 process_command(command);
+	// printf("%s\n",command->args[0] );
+		/*if(fork() == 0){
+		   char cwd[1024];
+		   getcwd(cwd,1024);
+		   strcat(cwd,"/parser.py");
+		   const char* parse[] = { "python",cwd, 0};
+            execvp(parse[0], parse);
+            perror("execvp parse");
+            exit(1);
+		}
+		else
+			wait(NULL);
+*/
+	
+	}
 void play_alarm(struct command_t *command_given){
 	int pid = fork();
 	if(pid < 0){
@@ -565,6 +605,13 @@ int process_command(struct command_t *command)
 			play_alarm(command);
 			return SUCCESS;
 	}
+	if(strcmp(command->name,"mixPlay") == 0){
+		mixPlay(command);
+		return SUCCESS;
+	}
+	if(strcmp(command->name,"bbc") == 0){
+		bbc(command);
+	}
 	pid_t pid=fork();
 	if (pid==0) // child
 	{
@@ -579,7 +626,7 @@ int process_command(struct command_t *command)
 		// increase args size by 2
 		command->args=(char **)realloc(
 			command->args, sizeof(char *)*(command->arg_count+=2));
-
+	
 		// shift everything forward by 1
 		for (int i=command->arg_count-2;i>0;--i)
 			command->args[i]=command->args[i-1];

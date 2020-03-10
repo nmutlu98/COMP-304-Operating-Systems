@@ -373,10 +373,11 @@ void auto_complete(struct command_t *command){
 			strcpy(name,command->name);
 			name[(int)(strchr(name,'?')-name)] = '\n';
 			int i = 0;
+			int y = 0;
 				bool flag = false;
 				char only_possible[1024];
 				char exec_my_files[1024];
-				strcpy(exec_my_files,"echo \"myjobs\n mybg\n myfg\n pause\n\" | grep ");
+				strcpy(exec_my_files,"echo \"myjobs\nmybg\nmyfg\npause\n\" | grep ");
 				strcat(exec_my_files,command->name);
 				exec_my_files[(int)(strchr(exec_my_files,'?')-exec_my_files)] = '\0';
 				if((for_my_commands = popen(exec_my_files,"r"))== NULL){
@@ -384,7 +385,12 @@ void auto_complete(struct command_t *command){
 					exit(-1);
 				}
 	   			  while (fgets(buf, 1024, for_my_commands) != NULL) {
-	       		    printf("%s\n",buf );
+	       		    if(y>1)
+	       		    	printf("%s\n",only_possible);
+	       		    strcpy(only_possible,buf);
+	       		    y+=1;
+	       		    if(strcmp(buf,name) == 0)
+	       		    	flag = true;
 
 	   			 }
 			while(token != NULL){
@@ -413,7 +419,7 @@ void auto_complete(struct command_t *command){
 				token = strtok(NULL,":"); 
 				
 			}
-			 if(i==1 && flag){ 
+			 if(i+y==1 && flag){ 
 	   			 	struct command_t *command=malloc(sizeof(struct command_t));
 					memset(command, 0, sizeof(struct command_t)); 
 					command->name = "ls";

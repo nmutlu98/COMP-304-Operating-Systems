@@ -6,9 +6,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include<linux/kernel.h>
 #include <sys/types.h>
 #define STDIN 0
 #define STDOUT 1
@@ -334,9 +334,14 @@ int main()
 	printf("\n");
 	return 0;
 }
+void draw(struct command_t *command){
+		
+}
+
 void auto_complete(struct command_t *command){
 	char buf[1024];
 	FILE *file;
+	FILE *for_my_commands;
 	char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
 			char cmd[1024];
@@ -370,6 +375,18 @@ void auto_complete(struct command_t *command){
 			int i = 0;
 				bool flag = false;
 				char only_possible[1024];
+				char exec_my_files[1024];
+				strcpy(exec_my_files,"echo \"myjobs\n mybg\n myfg\n pause\n\" | grep ");
+				strcat(exec_my_files,command->name);
+				exec_my_files[(int)(strchr(exec_my_files,'?')-exec_my_files)] = '\0';
+				if((for_my_commands = popen(exec_my_files,"r"))== NULL){
+					printf("%s\n","Error openning pipe" );
+					exit(-1);
+				}
+	   			  while (fgets(buf, 1024, for_my_commands) != NULL) {
+	       		    printf("%s\n",buf );
+
+	   			 }
 			while(token != NULL){
 				char exec_path[1024]; 
 				strcpy(exec_path,"/bin/ls "); 
@@ -611,6 +628,10 @@ int process_command(struct command_t *command)
 	}
 	if(strcmp(command->name,"bbc") == 0){
 		bbc(command);
+	}
+	if(strcmp(command->name,"psvis") == 0){
+		draw(command);
+		return SUCCESS;
 	}
 	pid_t pid=fork();
 	if (pid==0) // child

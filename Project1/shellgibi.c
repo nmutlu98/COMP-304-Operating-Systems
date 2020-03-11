@@ -335,7 +335,24 @@ int main()
 	return 0;
 }
 void draw(struct command_t *command){
+	FILE *child_list;
+	char *pid = command->args[0];
+	char cmd[1024];
+	strcpy(cmd,"ps --format pid,time --ppid ");
+	strcat(cmd,pid);
+	printf("%s\n", cmd );
+	char buffer[1024];
+	if((child_list = popen(cmd,"r"))== NULL){
+		printf("%s\n","Error openning pipe" );
+		exit(-1);
+		}
+		while (fgets(buffer, 1024, child_list) != NULL) {
+	       		printf("\n %s",buffer);
+	   		}	
 		
+	return 0;
+
+
 }
 
 void auto_complete(struct command_t *command){
@@ -377,7 +394,7 @@ void auto_complete(struct command_t *command){
 				bool flag = false;
 				char only_possible[1024];
 				char exec_my_files[1024];
-				strcpy(exec_my_files,"echo \"myjobs\nmybg\nmyfg\npause\n\" | grep ");
+				strcpy(exec_my_files,"echo \"myjobs\nmybg\nmyfg\npause\npsvis\n\" | grep ");
 				strcat(exec_my_files,command->name);
 				exec_my_files[(int)(strchr(exec_my_files,'?')-exec_my_files)] = '\0';
 				if((for_my_commands = popen(exec_my_files,"r"))== NULL){
@@ -526,9 +543,11 @@ void play_alarm(struct command_t *command_given){
 			strcat(line_to_crontab," ");
 			strcat(line_to_crontab,hour);
 			strcat(line_to_crontab," * * * ");
+			strcat(line_to_crontab,"XDG_RUNTIME_DIR=\"/run/user/1000\" ");
+			strcat(line_to_crontab,"aplay ");
 			strcat(line_to_crontab,cwd);
-			strcat(line_to_crontab,"alarm.sh ");
-			strcat(line_to_crontab, cwd);
+		//	strcat(line_to_crontab,"alarm.sh ");
+		//	strcat(line_to_crontab, cwd);
 			strcat(line_to_crontab, music);
 			const char* echo_command[] = { "echo", line_to_crontab, 0};
 			execvp(echo_command[0],echo_command);

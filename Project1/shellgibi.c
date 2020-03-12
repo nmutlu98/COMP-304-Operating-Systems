@@ -16,12 +16,6 @@
 #define READ_END 0
 #define WRITE_END 1
 const char * sysname = "shellgibi";
-//HOW TO SUPPORT NEW MTHODS
-//MYJOB MYFG IMPLEMENTATIONS + AUTOCOMPLETION
-//WE SHOULDNT EXECUTE IT AFTER COMPLETION
-// Those direction error
-//Temporary file problem
-// should it support /bin/gre tab
 //MYBG dont wait for it to be terminated just wait for changing state.
 enum return_codes {
 	SUCCESS = 0,
@@ -648,13 +642,11 @@ int process_command(struct command_t *command)
 		exit(0);
 		} else{
 			char status[1024];
-			pid_t return_pid = waitpid(atoi(command->args[0]), &status, 0); 
-			while(return_pid == 0) {
-			   sleep(1);
-			} 
-			wait(NULL);
-			return SUCCESS;
+			int return_pid = waitid(P_PID, atoi(command->args[0]), &status, WSTOPPED); 
+			
 		}
+		//wait(NULL);
+			return SUCCESS;
 	}
 	if(strcmp(command->name,"alarm") == 0){
 			play_alarm(command);
@@ -759,8 +751,9 @@ int process_command(struct command_t *command)
 	}
 	else
 	{
+		char status[1024];
 		if (!command->background)
-			wait(0); // wait for child process to finish
+			waitid(P_PID, pid, &status, WSTOPPED);  // wait for child process to finish
 		return SUCCESS;
 	}
 

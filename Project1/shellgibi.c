@@ -10,6 +10,7 @@
 #include <signal.h>
 #include<linux/kernel.h>
 #include <sys/types.h>
+#include <errno.h>
 #define STDIN 0
 #define STDOUT 1
 #define READ_END 0
@@ -334,26 +335,38 @@ int main()
 	printf("\n");
 	return 0;
 }
-void draw(struct command_t *command){
-	FILE *child_list;
-	char *pid = command->args[0];
+
+/*void draw(char *pid,char indent[1024], FILE *file){
+	/*FILE *child_list;
 	char cmd[1024];
 	strcpy(cmd,"ps --format pid,time --ppid ");
 	strcat(cmd,pid);
-	printf("%s\n", cmd );
 	char buffer[1024];
+	int i = 0;
 	if((child_list = popen(cmd,"r"))== NULL){
 		printf("%s\n","Error openning pipe" );
 		exit(-1);
 		}
-		while (fgets(buffer, 1024, child_list) != NULL) {
-	       		printf("\n %s",buffer);
+	while (fgets(buffer, 1024, child_list) != NULL) {
+	       		char copy[1024];
+	       		strcpy(copy,buffer);
+	       		char *token = strtok(copy," ");
+	       		char pid_child[1024];
+	       		strcpy(pid_child,token);
+	       		if(i>0){
+		       		printf("\n %s%s",indent,token);
+		       		token = strtok(NULL," ");
+		       		printf("\n %s%s",indent,token);
+		       		draw(pid_child,indent);
 	   		}	
+	   		i+=1;
+	   	}	
 		
+
 	return 0;
 
 
-}
+} */
 
 void auto_complete(struct command_t *command){
 	char buf[1024];
@@ -655,8 +668,18 @@ int process_command(struct command_t *command)
 		bbc(command);
 	}
 	if(strcmp(command->name,"psvis") == 0){
-		draw(command);
+		char *prog_name[1024];
+		strcat(prog_name, "./");
+		strcat(prog_name,"psvis ");
+		strcat(prog_name,command->args[0]);
+		strcat(prog_name," | dot -Tx11");
+		struct command_t *command=malloc(sizeof(struct command_t));
+		memset(command, 0, sizeof(struct command_t)); // set all bytes to 0
+
+		parse_command(prog_name,command);
+		process_command(command);
 		return SUCCESS;
+		
 	}
 	pid_t pid=fork();
 	if (pid==0) // child

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-
+//goes over the children recursively and prints nodes with their labels and edges. 
 int draw_tree(char *pid, FILE *dot)
 {
 	FILE *child_list;
@@ -20,6 +20,7 @@ int draw_tree(char *pid, FILE *dot)
 		}
 	char max[1024];
 	int k = 0;
+	//to determine the oldest child I read all of the child from the file and check their times
 	while (fgets(buffer, 1024, child_list2) != NULL) {
 			if(k == 0){
 				strcpy(max,buffer);
@@ -37,6 +38,8 @@ int draw_tree(char *pid, FILE *dot)
 				
 
 	}
+	//to build the diagraph structure goes over the childs of the process with given pid recursively and for
+	//each child it prints a node and prints the necessary edge between the given pid and child pid
 	if((child_list = popen(cmd,"r"))== NULL){
 		printf("%s\n","Error openning pipe" );
 		exit(-1);
@@ -77,7 +80,8 @@ int draw_tree(char *pid, FILE *dot)
 }
 		return EXIT_SUCCESS;
 }
-
+//prints the starts and ends for the diagraph structure. When the resulting diagraph{...} is given to dot -Tx11 as input with a pipe
+//it prints us the graph in a png form and opens it in a graphiz frame
 int process_tree(FILE *out,char *pid)
 {
 

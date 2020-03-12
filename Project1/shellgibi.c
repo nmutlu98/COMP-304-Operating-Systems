@@ -15,6 +15,7 @@
 #define STDOUT 1
 #define READ_END 0
 #define WRITE_END 1
+#define SIZE 1024
 const char * sysname = "shellgibi";
 //MYBG dont wait for it to be terminated just wait for changing state.
 enum return_codes {
@@ -86,7 +87,7 @@ int free_command(struct command_t *command)
  */
 int show_prompt()
 {
-	char cwd[1024], hostname[1024];
+	char cwd[SIZE], hostname[SIZE];
     gethostname(hostname, sizeof(hostname));
 	getcwd(cwd, sizeof(cwd));
 	printf("%s@%s:%s %s$ ", getenv("USER"), hostname, cwd, sysname);
@@ -127,7 +128,7 @@ int parse_command(char *buf, struct command_t *command)
 
 	int redirect_index;
 	int arg_index=0;
-	char temp_buf[1024], *arg;
+	char temp_buf[SIZE], *arg;
 	while (1)
 	{
 		// tokenize input on splitters
@@ -330,107 +331,77 @@ int main()
 	return 0;
 }
 
-/*void draw(char *pid,char indent[1024], FILE *file){
-	/*FILE *child_list;
-	char cmd[1024];
-	strcpy(cmd,"ps --format pid,time --ppid ");
-	strcat(cmd,pid);
-	char buffer[1024];
-	int i = 0;
-	if((child_list = popen(cmd,"r"))== NULL){
-		printf("%s\n","Error openning pipe" );
-		exit(-1);
-		}
-	while (fgets(buffer, 1024, child_list) != NULL) {
-	       		char copy[1024];
-	       		strcpy(copy,buffer);
-	       		char *token = strtok(copy," ");
-	       		char pid_child[1024];
-	       		strcpy(pid_child,token);
-	       		if(i>0){
-		       		printf("\n %s%s",indent,token);
-		       		token = strtok(NULL," ");
-		       		printf("\n %s%s",indent,token);
-		       		draw(pid_child,indent);
-	   		}	
-	   		i+=1;
-	   	}	
-		
-
-	return 0;
-
-
-} */
 
 void auto_complete(struct command_t *command){
-	char buf[1024];
-	FILE *file;
+	char buf[SIZE];
+	FILE *file; 
 	FILE *for_my_commands;
 	char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
-			char cmd[1024];
+			char cmd[SIZE];
+			//If command name includes / and . it is a relative path to an executable in the current directory
 			if(command->name[0] == '.' && command->name[1] == '/'){
 				strcpy(cmd,"/bin/ls | /bin/grep ");
-				char buffer[1024];
-				strncpy(buffer, command->name+2,1024);
+				char buffer[SIZE];
+				strncpy(buffer, command->name+2,SIZE);
 				buffer[(int)(strchr(buffer,'?')-buffer)] = '\0';
 				strcat(cmd,buffer);
+				//get the results of the ls | grep command->name into the file
 				if((file = popen(cmd,"r"))== NULL){
 				printf("%s\n","Error openning pipe" );
 				exit(-1);
 				}
-				 while (fgets(buf, 1024, file) != NULL) {
-	       		 	/*char full_name[1024];
-	       		 	strcpy(full_name,"./");
-	       		 	strcat(full_name,buf);
-	       		 	sprintf(command->name,"%s",full_name);*/
+				 while (fgets(buf, SIZE, file) != NULL) {
 	       		 	printf("\n %s",buf);
 	   			 }	
 			}
 
-		} else{ //AFTER new prompt shows up it doesnt work.
-			char *path = getenv("PATH");  //TRANSLATE THOSE INTO THE PROCESS COMMAND // MYJOBS MYBG MYFG Yİ DE DESTEKLEMELİ //EXECUTE COMMAND METHODU YAZ
-			char modified[1024];
+		} else{ 
+			//take the path variable for searching executables 
+			char *path = getenv("PATH");  
+			char modified[SIZE];
 		    strcpy(modified,path);
 			char *token = strtok(modified,":");
-			char name[1024];
+			char name[SIZE];
 			strcpy(name,command->name);
 			name[(int)(strchr(name,'?')-name)] = '\n';
-			int i = 0;
-			int y = 0;
-				bool flag = false;
-				char only_possible[1024];
-				char exec_my_files[1024];
-				strcpy(exec_my_files,"echo \"myjobs\nmybg\nmyfg\npause\npsvis\n\" | grep ");
-				strcat(exec_my_files,command->name);
-				exec_my_files[(int)(strchr(exec_my_files,'?')-exec_my_files)] = '\0';
-				if((for_my_commands = popen(exec_my_files,"r"))== NULL){
-					printf("%s\n","Error openning pipe" );
-					exit(-1);
-				}
-	   			  while (fgets(buf, 1024, for_my_commands) != NULL) {
-	       		    if(y>1)
-	       		    	printf("%s\n",only_possible);
+			int i = 0; //counter for matching executables 
+			int y = 0; //counter for matching commands from newly created ones
+			bool flag = false; //whether there is a command exactly matches with the given name
+			char only_possible[SIZE];
+			char exec_my_files[SIZE];
+			//for the newly created commands I give a string composed of them to the grep and take the matching results to 
+			//for_my_commands file
+			strcpy(exec_my_files,"echo \"myjobs\nmybg\nmyfg\npause\npsvis\n\" | grep ");
+			strcat(exec_my_files,command->name);
+			exec_my_files[(int)(strchr(exec_my_files,'?')-exec_my_files)] = '\0';
+			if((for_my_commands = popen(exec_my_files,"r"))== NULL){
+				printf("%s\n","Error openning pipe" );
+				exit(-1);
+			}
+	   		while (fgets(buf, SIZE, for_my_commands) != NULL) {
+	       		if(y>1) // I have a counter to check how many matching commands found
+	       		    printf("%s\n",only_possible); // only_possible stores the previous matching command
 	       		    strcpy(only_possible,buf);
-	       		    y+=1;
-	       		    if(strcmp(buf,name) == 0)
+	       		    y+=1; 
+	       		    if(strcmp(buf,name) == 0) 
 	       		    	flag = true;
 
 	   			 }
 			while(token != NULL){
-				char exec_path[1024]; 
-				strcpy(exec_path,"/bin/ls "); 
+				char exec_path[SIZE]; 
+				strcpy(exec_path,"/bin/ls "); //ls every element of the path and direct the results to grep
 				strcat(exec_path,token); 
 				strcat(exec_path," | ");
 				strcat(exec_path,"/bin/grep ");
 				strcat(exec_path,command->name);
 				
 				exec_path[(int)(strchr(exec_path,'?')-exec_path)] = '\0';
-				if((file = popen(exec_path,"r"))== NULL){
+				if((file = popen(exec_path,"r"))== NULL){ // store the matching results in the file
 					printf("%s\n","Error openning pipe" );
 					exit(-1);
 				}
-				 while (fgets(buf, 1024, file) != NULL) {
+				 while (fgets(buf, SIZE, file) != NULL) {
 	       		    if(i>1)
 	       		    	printf("%s\n",only_possible);
 	       		    strcpy(only_possible,buf);
@@ -443,12 +414,16 @@ void auto_complete(struct command_t *command){
 				token = strtok(NULL,":"); 
 				
 			}
-			 if(i+y==1 && flag){ 
-	   			 	struct command_t *command=malloc(sizeof(struct command_t));
-					memset(command, 0, sizeof(struct command_t)); 
-					command->name = "ls";
-					process_command(command);
-	   			 } else if(i>1){
+			if(i+y==1 && flag){ 
+			 //at the end if we have a fully typed command we should have 
+			 //found only one command from new ones and executables
+	   			struct command_t *command=malloc(sizeof(struct command_t));
+				memset(command, 0, sizeof(struct command_t)); 
+				command->name = "ls";
+				process_command(command);
+	   			} else if(i>1){ 
+	   			 	//only_possible always holds the previous matching command. 
+	   			 	//In the case that we have more than 1 command, in order to print last matching one we should do this
 	   			 	printf("%s\n", only_possible); 
 	   			 } else{
 	   			 	printf("%s\n", only_possible); 
@@ -458,12 +433,12 @@ void auto_complete(struct command_t *command){
 }
 int execute_command(struct command_t *command){
 	char *path = getenv("PATH"); 
-		char modified[1024];
+		char modified[SIZE];
 		strcpy(modified,path);
 		char *token = strtok(modified,":");
 		char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
-			execv(command->name,command->args);//when we find the executable we execute it 
+			execv(command->name,command->args);//when we find the executable we execute it, it should be in the current directory 
 			exit(0);//#
 
 		} else{
@@ -484,10 +459,11 @@ int execute_command(struct command_t *command){
 	}
 	return SUCCESS;
 }
+//takes a number as an argument and plays this many random songs from your current working directory
 void mixPlay(struct command_t *command){
 		if(fork() == 0){
-		   char cwd[1024];
-		   getcwd(cwd,1024);
+		   char cwd[SIZE];
+		   getcwd(cwd,SIZE);
 		   strcat(cwd,"/mixPlay.py");
 		   const char* play[] = { "python", cwd, command->args[0],"&", 0};
             execvp(play[0], play);
@@ -499,30 +475,19 @@ void mixPlay(struct command_t *command){
 
 	
 	}
+//no arguments. It parses the data in the main page of bbc and 
+//prints you the daily titles
 void bbc(struct command_t *command){
-	 char cwd[1024];
-	 getcwd(cwd,1024);
+	 char cwd[SIZE];
+	 getcwd(cwd,SIZE);
 	 strcat(cwd,"/parser.py");
-	 command->args[0] = (char *)malloc(1024);
+	 command->args[0] = (char *)malloc(SIZE);
 	 strcpy(command->args[0],cwd);
 	 strcpy(command->name,"python");
 	 command->arg_count = 1;
 	 process_command(command);
-	// printf("%s\n",command->args[0] );
-		/*if(fork() == 0){
-		   char cwd[1024];
-		   getcwd(cwd,1024);
-		   strcat(cwd,"/parser.py");
-		   const char* parse[] = { "python",cwd, 0};
-            execvp(parse[0], parse);
-            perror("execvp parse");
-            exit(1);
-		}
-		else
-			wait(NULL);
-*/
-	
 	}
+
 void play_alarm(struct command_t *command_given){
 	int pid = fork();
 	if(pid < 0){
@@ -537,11 +502,11 @@ void play_alarm(struct command_t *command_given){
 		}
 		if(fork()==0){
 			close(cron_pipe[READ_END]);
-			char cwd[1024];
-			getcwd(cwd,1024);
+			char cwd[SIZE];
+			getcwd(cwd,SIZE);
 			strcat(cwd,"/");
 			dup2(cron_pipe[WRITE_END],STDOUT);
-			char line_to_crontab[1024];
+			char line_to_crontab[SIZE];
 			char *time = command_given->args[0];
 			char *music = command_given->args[1];
 			char *hour = strtok(time,".");
@@ -550,24 +515,22 @@ void play_alarm(struct command_t *command_given){
 			strcat(line_to_crontab," ");
 			strcat(line_to_crontab,hour);
 			strcat(line_to_crontab," * * * ");
-			strcat(line_to_crontab,"XDG_RUNTIME_DIR=\"/run/user/1000\" ");
+			strcat(line_to_crontab,"XDG_RUNTIME_DIR=\"/run/user/1000\" "); //added before the command to make crontab play a music file
 			strcat(line_to_crontab,"aplay ");
 			strcat(line_to_crontab,cwd);
-		//	strcat(line_to_crontab,"alarm.sh ");
-		//	strcat(line_to_crontab, cwd);
 			strcat(line_to_crontab, music);
-			const char* echo_command[] = { "echo", line_to_crontab, 0};
+			const char* echo_command[] = { "echo", line_to_crontab, 0}; //writes the cron job to the write end of the pipe
 			execvp(echo_command[0],echo_command);
 			perror("echo execv");
 			exit(1);
 		} else{
 			wait(NULL);
 			close(cron_pipe[WRITE_END]);
-			char buf[1024];
-			dup2(cron_pipe[READ_END],STDIN);
-			const  char* prog2[] = { "crontab", "-", 0};
+			char buf[SIZE];
+			dup2(cron_pipe[READ_END],STDIN);//we replace stdin with the read end of the pipe
+			const  char* prog2[] = { "crontab", "-", 0};//takes file as an input and replaces it with the crontab file
 	        execvp(prog2[0], prog2);
-	        perror("execvp of wc failed");
+	        perror("execvp of alarm failed");
         }
 	} else{
 		wait(NULL);
@@ -602,20 +565,22 @@ int process_command(struct command_t *command)
     		fprintf(stderr, "%s\n","Couldnt get the user" );
     		exit(1);
     	}
-
+    	//replaced the name and the arguments of the command with ps command and it continued its execution in the 
+    	//process command function like other commands read from shellgibi
     	char *cmd = "ps";
     	strcpy(command->name,cmd);
 		command->args = (char **)malloc(sizeof(char *)*4) ;
-		command->args[0] = (char *)malloc(1024);
+		command->args[0] = (char *)malloc(SIZE);
 		strcpy(command->args[0], "-u");
-		command->args[1] = (char *)malloc(1024);
+		command->args[1] = (char *)malloc(SIZE);
 		strcpy(command->args[1], user);
-		command->args[2] = (char *)malloc(1024);
+		command->args[2] = (char *)malloc(SIZE);
 		strcpy(command->args[2], "--format");
-		command->args[3] = (char *)malloc(1024);
+		command->args[3] = (char *)malloc(SIZE);
 		strcpy(command->args[3], "pid,stat,ucmd");
 		command->arg_count = 4; 
 	}
+	//sends sigstop signal to process with the given pid
 	if(strcmp(command->name,"pause") == 0){ 
 		int res = kill(atoi(command->args[0]),SIGSTOP);
 		if(res == -1)
@@ -623,12 +588,14 @@ int process_command(struct command_t *command)
 		return SUCCESS;
 		
 	}
+	//sends sigcont signall to a stopped process and makes it continue run in the background
 	if(strcmp(command->name,"mybg") == 0){
 		int res = kill(atoi(command->args[0]),SIGCONT);
 		if(res == -1)
 			printf("%s\n","Kill cont bg failed" );
 		return SUCCESS;
 	}
+	//takes a process to foreground
 	if(strcmp(command->name,"myfg") == 0){
 		pid_t pid_fg = fork();
 		if(pid_fg < 0){
@@ -636,16 +603,18 @@ int process_command(struct command_t *command)
 			exit(1);
 		}
 		if(pid_fg == 0){
+			//child process sends sigcont signal to the process with given pid 
+			//and takes it to foreground
 			int res = kill(atoi(command->args[0]),SIGCONT);
 		if(res == -1)
 			printf("%s\n","Kill cont fg failed" );
 		exit(0);
 		} else{
-			char status[1024];
+			char status[SIZE];
+			//parent process waits until the process with given id is stopped by a signal
 			int return_pid = waitid(P_PID, atoi(command->args[0]), &status, WSTOPPED); 
 			
 		}
-		//wait(NULL);
 			return SUCCESS;
 	}
 	if(strcmp(command->name,"alarm") == 0){
@@ -660,7 +629,9 @@ int process_command(struct command_t *command)
 		bbc(command);
 	}
 	if(strcmp(command->name,"psvis") == 0){
-		char *prog_name[1024];
+		//it prepares a new line which should be parsed and execute the following
+		//./psvis given_pid | dot -Tx11
+		char *prog_name[SIZE];
 		strcat(prog_name, "./");
 		strcat(prog_name,"psvis ");
 		strcat(prog_name,command->args[0]);
@@ -697,25 +668,30 @@ int process_command(struct command_t *command)
 		// set args[arg_count-1] (last) to NULL
 		// stdout of these should be the stdin of the next one 		
 		command->args[command->arg_count-1]=NULL;
-		
+		//do the redirection for the stdin by duplicating stdin to the given redirect
 		if(command->redirects[0] != NULL){
 			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY | O_APPEND,0666);
 			if(file_dsc < 0) 
         		printf("Error opening the file\n", command->redirects[0]); 
 			dup2(file_dsc,STDIN);
 		}
+		//does the redirection for > by duplicating stdout with dup2
 		if(command->redirects[1] != NULL){
+			//we truncate the file or create it if it doesnt exist 
 			int file_dsc = open(command->redirects[1], O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT,0666);
 			if(file_dsc < 0) 
         		printf("Error opening the file\n", command->redirects[1]); 
 			dup2(file_dsc,STDOUT);
 		}
+		//does the redirection for >>
 		if(command->redirects[2] != NULL){
+			//it doesnt truncate the file or create it. It opens it with O_APPEND
 			int file_dsc = open(command->redirects[2],O_WRONLY | O_CREAT | O_RDONLY | O_APPEND, 0666);
 			if(file_dsc < 0) 
         		printf("Error opening the file\n",command->redirects[2]); 
 			dup2(file_dsc,STDOUT);
 		}
+		//if command has next call the process_command recursively
 		if(command->next != NULL){
 			int fd[2];
 			if(pipe(fd)<0){
@@ -751,9 +727,9 @@ int process_command(struct command_t *command)
 	}
 	else
 	{
-		char status[1024];
+		char status[SIZE];
 		if (!command->background)
-			waitid(P_PID, pid, &status, WSTOPPED);  // wait for child process to finish
+			waitid(P_PID, pid, &status, WSTOPPED);  // wait until the currently running process is stopped by a signal
 		return SUCCESS;
 	}
 

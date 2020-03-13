@@ -336,23 +336,24 @@ void auto_complete(struct command_t *command){
 	char buf[SIZE];
 	FILE *file; 
 	FILE *for_my_commands;
+	char searched_string[SIZE];
 	char *ptr = strchr(command->name,'/');
 		if(ptr != NULL){
 			char cmd[SIZE];
 			//If command name includes / and . it is a relative path to an executable in the current directory
 			if(command->name[0] == '.' && command->name[1] == '/'){
 				strcpy(cmd,"/bin/ls | /bin/grep ");
-				char buffer[SIZE];
-				strncpy(buffer, command->name+2,SIZE);
-				buffer[(int)(strchr(buffer,'?')-buffer)] = '\0';
-				strcat(cmd,buffer);
+				strncpy(searched_string, command->name+2,SIZE);
+				searched_string[(int)(strchr(searched_string,'?')-searched_string)] = '\0';
+				strcat(cmd,searched_string);
 				//get the results of the ls | grep command->name into the file
 				if((file = popen(cmd,"r"))== NULL){
-				printf("%s\n","Error openning pipe" );
+				printf("\n%s","Error openning pipe" );
 				exit(-1);
-				}
-				 while (fgets(buf, SIZE, file) != NULL) {
-	       		 	printf("\n %s",buf);
+				
+	}			 while (fgets(buf, SIZE, file) != NULL) {
+				 	if(strncmp(buf,searched_string,strlen(searched_string)-1) == 0)
+	       		 		printf("\n %s",buf);
 	   			 }	
 			}
 
@@ -362,9 +363,8 @@ void auto_complete(struct command_t *command){
 			char modified[SIZE];
 		    strcpy(modified,path);
 			char *token = strtok(modified,":");
-			char name[SIZE];
-			strcpy(name,command->name);
-			name[(int)(strchr(name,'?')-name)] = '\n';
+			strcpy(searched_string,command->name);
+			searched_string[(int)(strchr(searched_string,'?')-searched_string)] = '\n';
 			int i = 0; //counter for matching executables 
 			int y = 0; //counter for matching commands from newly created ones
 			bool flag = false; //whether there is a command exactly matches with the given name
@@ -373,18 +373,19 @@ void auto_complete(struct command_t *command){
 			//for the newly created commands I give a string composed of them to the grep and take the matching results to 
 			//for_my_commands file
 			strcpy(exec_my_files,"echo \"myjobs\nmybg\nmyfg\npause\npsvis\n\" | grep ");
-			strcat(exec_my_files,command->name);
-			exec_my_files[(int)(strchr(exec_my_files,'?')-exec_my_files)] = '\0';
+			strcat(exec_my_files,searched_string);
 			if((for_my_commands = popen(exec_my_files,"r"))== NULL){
 				printf("%s\n","Error openning pipe" );
 				exit(-1);
 			}
+			char only_possible_my_command[SIZE];
 	   		while (fgets(buf, SIZE, for_my_commands) != NULL) {
-	       		if(y>1) // I have a counter to check how many matching commands found
-	       		    printf("%s\n",only_possible); // only_possible stores the previous matching command
-	       		    strcpy(only_possible,buf);
+	       		if(y>=1) // I have a counter to check how many matching commands found
+	       			if(strncmp(only_possible_my_command,searched_string,strlen(searched_string)-1) == 0)
+	       		    	printf("\n%s",only_possible_my_command); // only_possible stores the previous matching command
+	       		    strcpy(only_possible_my_command,buf);
 	       		    y+=1; 
-	       		    if(strcmp(buf,name) == 0) 
+	       		    if(strcmp(buf,searched_string) == 0) 
 	       		    	flag = true;
 
 	   			 }
@@ -394,19 +395,20 @@ void auto_complete(struct command_t *command){
 				strcat(exec_path,token); 
 				strcat(exec_path," | ");
 				strcat(exec_path,"/bin/grep ");
-				strcat(exec_path,command->name);
+				strcat(exec_path,searched_string);
 				
-				exec_path[(int)(strchr(exec_path,'?')-exec_path)] = '\0';
 				if((file = popen(exec_path,"r"))== NULL){ // store the matching results in the file
-					printf("%s\n","Error openning pipe" );
+					printf("\n%s","Error openning pipe" );
 					exit(-1);
 				}
 				 while (fgets(buf, SIZE, file) != NULL) {
-	       		    if(i>1)
-	       		    	printf("%s\n",only_possible);
+	       		    if(i>1){
+	       		    	if(strncmp(only_possible,searched_string,strlen(searched_string)-1) == 0)
+	       		    		printf("\n%s",only_possible);
+	       		    }
 	       		    strcpy(only_possible,buf);
 	       		    i+=1;
-	       		    if(strcmp(buf,name) == 0)
+	       		    if(strcmp(buf,searched_string) == 0)
 	       		    	flag = true;
 
 	   			 }
@@ -420,13 +422,24 @@ void auto_complete(struct command_t *command){
 	   			struct command_t *command=malloc(sizeof(struct command_t));
 				memset(command, 0, sizeof(struct command_t)); 
 				command->name = "ls";
+				printf("\n");
 				process_command(command);
-	   			} else if(i>1){ 
+	   			} else if(i>=1 && y>=1){ 
 	   			 	//only_possible always holds the previous matching command. 
 	   			 	//In the case that we have more than 1 command, in order to print last matching one we should do this
-	   			 	printf("%s\n", only_possible); 
-	   			 } else{
-	   			 	printf("%s\n", only_possible); 
+	   			 	if(strncmp(only_possible,searched_string,strlen(searched_string)-1) == 0)
+	   			 		printf("\n%s", only_possible); 
+	   			 	if(strncmp(only_possible_my_command,searched_string,strlen(searched_string)-1) == 0)
+	   			 		printf("\n%s", only_possible_my_command); 
+	   			 } else if(i>=1){
+	   			 	if(strncmp(only_possible,searched_string,strlen(searched_string)-1) == 0)
+	   			 		printf("\n%s", only_possible); 
+	   			 } else if(y>=1){
+	   			 	if(strncmp(only_possible_my_command,searched_string,strlen(searched_string)-1) == 0)
+	   			 		printf("\n%s", only_possible_my_command); 
+	   			  }else{
+	   			  	if(strncmp(only_possible,searched_string,strlen(searched_string)-1) == 0)
+	   			 		printf("\n%s", only_possible); 
 	   			 }
 		}
 			return SUCCESS;
@@ -465,7 +478,7 @@ void mixPlay(struct command_t *command){
 		   char cwd[SIZE];
 		   getcwd(cwd,SIZE);
 		   strcat(cwd,"/mixPlay.py");
-		   const char* play[] = { "python", cwd, command->args[0],"&", 0};
+		   const char* play[] = { "python", cwd, command->args[0], 0};
             execvp(play[0], play);
             perror("execvp play");
             exit(1);

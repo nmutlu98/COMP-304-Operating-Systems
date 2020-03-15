@@ -473,10 +473,10 @@ int execute_command(struct command_t *command){
 	return SUCCESS;
 }
 //takes a number as an argument and plays this many random songs from your current working directory
-void mixPlay(struct command_t *command){
+void gitUserCheck(struct command_t *command){
 	char cwd[SIZE];
 	getcwd(cwd,SIZE);
-	strcat(cwd,"/mixPlay.py");
+	strcat(cwd,"/gitUserCheck.py");
 	strcpy(command->name,"python");
 	command->args[1] = (char *)malloc(SIZE);
 	strcpy(command->args[1], command->args[0]);
@@ -632,8 +632,8 @@ int process_command(struct command_t *command)
 			play_alarm(command);
 			return SUCCESS;
 	}
-	if(strcmp(command->name,"mixPlay") == 0){
-		mixPlay(command);
+	if(strcmp(command->name,"gitUserCheck") == 0){
+		gitUserCheck(command);
 		return SUCCESS;
 	}
 	if(strcmp(command->name,"bbc") == 0){

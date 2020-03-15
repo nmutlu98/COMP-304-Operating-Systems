@@ -332,7 +332,7 @@ int main()
 }
 
 
-void auto_complete(struct command_t *command){
+int auto_complete(struct command_t *command){
 	char buf[SIZE];
 	FILE *file; 
 	FILE *for_my_commands;
@@ -352,7 +352,7 @@ void auto_complete(struct command_t *command){
 				exit(-1);
 				
 	}			 while (fgets(buf, SIZE, file) != NULL) {
-				 	if(strncmp(buf,searched_string,strlen(searched_string)-1) == 0)
+				 	if(strncmp(buf,searched_string,strlen(searched_string)) == 0)
 	       		 		printf("\n %s",buf);
 	   			 }	
 			}
@@ -456,7 +456,7 @@ int execute_command(struct command_t *command){
 
 		} else{
 			while(token != NULL){
-				char *exec_path[500] = {'\0'}; //for each possible directory equating exec path to empty string which will eventually store the possible executable path
+				char exec_path[500] = {'\0'}; //for each possible directory equating exec path to empty string which will eventually store the possible executable path
 				strcat(exec_path,token); //get one path from the given paths and copy it to exec_path
 				strcat(exec_path,"/");
 				strcat(exec_path,command->args[0]);//concatenate exec path with the executable name
@@ -623,9 +623,9 @@ int process_command(struct command_t *command)
 			printf("%s\n","Kill cont fg failed" );
 		exit(0);
 		} else{
-			char status[SIZE];
+			char* status[SIZE];
 			//parent process waits until the process with given id is stopped by a signal
-			int return_pid = waitid(P_PID, atoi(command->args[0]), &status, WSTOPPED); 
+			int return_pid = waitid(P_PID, atoi(command->args[0]), status, WSTOPPED); 
 			
 		}
 			return SUCCESS;
@@ -644,7 +644,7 @@ int process_command(struct command_t *command)
 	if(strcmp(command->name,"psvis") == 0){
 		//it prepares a new line which should be parsed and execute the following
 		//./psvis given_pid | dot -Tx11
-		char *prog_name[SIZE];
+		char prog_name[SIZE];
 		strcat(prog_name, "./");
 		strcat(prog_name,"psvis ");
 		strcat(prog_name,command->args[0]);
@@ -685,7 +685,7 @@ int process_command(struct command_t *command)
 		if(command->redirects[0] != NULL){
 			int file_dsc = open(command->redirects[0],O_RDONLY | O_WRONLY | O_APPEND,0666);
 			if(file_dsc < 0) 
-        		printf("Error opening the file\n", command->redirects[0]); 
+        		printf("Error opening the file %s\n", command->redirects[0]); 
 			dup2(file_dsc,STDIN);
 		}
 		//does the redirection for > by duplicating stdout with dup2
@@ -693,7 +693,7 @@ int process_command(struct command_t *command)
 			//we truncate the file or create it if it doesnt exist 
 			int file_dsc = open(command->redirects[1], O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT,0666);
 			if(file_dsc < 0) 
-        		printf("Error opening the file\n", command->redirects[1]); 
+        		printf("Error opening the file %s\n", command->redirects[1]); 
 			dup2(file_dsc,STDOUT);
 		}
 		//does the redirection for >>
@@ -701,7 +701,7 @@ int process_command(struct command_t *command)
 			//it doesnt truncate the file or create it. It opens it with O_APPEND
 			int file_dsc = open(command->redirects[2],O_WRONLY | O_CREAT | O_RDONLY | O_APPEND, 0666);
 			if(file_dsc < 0) 
-        		printf("Error opening the file\n",command->redirects[2]); 
+        		printf("Error opening the file %s\n",command->redirects[2]); 
 			dup2(file_dsc,STDOUT);
 		}
 		//if command has next call the process_command recursively
@@ -751,3 +751,4 @@ int process_command(struct command_t *command)
 	printf("-%s: %s: command not found\n", sysname, command->name);
 	return UNKNOWN;
 }
+

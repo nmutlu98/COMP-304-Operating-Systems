@@ -9,7 +9,8 @@ static int pid = -1;
 
 module_param(pid, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(pid, "Pid of the process");
-int draw_tree(pid_t pid, char *diagraph)
+//traverses the subprocess tree whose root is the given pid
+int draw_tree(pid_t pid)
 {	struct task_struct *task;
 	int flag_found = -1;
 	for_each_process(task){
@@ -24,36 +25,14 @@ int draw_tree(pid_t pid, char *diagraph)
 	} else{
 		struct task_struct *parent = task;
 		
-		printk(KERN_INFO "Printing children");
+		printk(KERN_INFO "Printing children of %d",pid);
 		int empty = -1;
 		struct task_struct *task_child;
 		struct list_head *list;
-		long long int time = -1;
-		pid_t max_child = -1;
 		list_for_each(list, &parent->children) {
 		    task_child = list_entry(list, struct task_struct, sibling);
-		    if(task_child->start_time>time){
-		    	max_child = task_child->pid;
-		    	time = task_child->start_time;
-		    }
-
-	    	empty = 1;
-	    	
-		}
-		list_for_each(list, &parent->children) {
-		    task_child = list_entry(list, struct task_struct, sibling);
-		    char line[1024];
-		    char line2[1024];
-		    if(task_child->pid == max_child)
-		    	 sprintf(line, "    \"%d\" [ label=\"%d %lld\" , color=red ];\n", task_child->pid,task_child->pid, task_child->start_time);
-		    else
-		    	sprintf(line, "    \"%d\" [ label=\"%d %lld\" ];\n", task_child->pid,task_child->pid, task_child->start_time);
-	    	
-	    	sprintf(line2, "    \"%d\" -> \"%d\";\n", pid, task_child->pid);
-	    	strcat(diagraph,line);
-	    	strcat(diagraph,line2);
-	    	
-	    	
+		    printk(KERN_INFO "Child pid: %d Child Start Time: %lld",task_child->pid,task_child->start_time);
+		    draw_tree(task_child->pid);
 	    	empty = 1;
 	    	
 		}
@@ -64,17 +43,10 @@ int draw_tree(pid_t pid, char *diagraph)
 	return EXIT_SUCCESS;
 		
 }
-//prints the starts and ends for the diagraph structure. When the resulting diagraph{...} is given to dot -Tx11 as input with a pipe
-//it prints us the graph in a png form and opens it in a graphiz frame
+
 int process_tree(pid_t pid)
 {
-	char diagraph[10000];
-    strcat(diagraph, "digraph {\n");
-	
-    draw_tree(pid, diagraph);
-    strcat(diagraph, "}\n");
-  	printk(KERN_INFO "Diagraph: %s",diagraph);
-  	
+    draw_tree(pid);
     return EXIT_SUCCESS;
 }
 

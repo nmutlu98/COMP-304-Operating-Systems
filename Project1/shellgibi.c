@@ -639,9 +639,13 @@ int process_command(struct command_t *command)
 	if(strcmp(command->name,"bbc") == 0){
 		bbc(command);
 	}
-	if(strcmp(command->name,"psvis") == 0){
-		//it prepares a new line which should be parsed and execute the following
-		//./psvis given_pid | dot -Tx11
+	if(strcmp(command->name,"psvis2") == 0){
+		struct command_t *compile_command=malloc(sizeof(struct command_t));
+		memset(compile_command, 0, sizeof(struct command_t)); // set all bytes to 0
+		char compile[1024];
+		strcpy(compile,"gcc -o psvis draw.c -lrt");
+		parse_command(compile,compile_command);
+		process_command(compile_command);
 		char prog_name[SIZE];
 		strcat(prog_name, "./");
 		strcat(prog_name,"psvis ");
@@ -652,6 +656,22 @@ int process_command(struct command_t *command)
 
 		parse_command(prog_name,command);
 		process_command(command);
+		return SUCCESS;
+		
+	}
+	if(strcmp(command->name,"psvis") == 0){
+		char *prog_name[SIZE];
+		strcat(prog_name, "sudo insmod psvis.ko pid=");
+		strcat(prog_name,command->args[0]);
+		struct command_t *command=malloc(sizeof(struct command_t));
+		memset(command, 0, sizeof(struct command_t)); 
+		parse_command(prog_name,command);
+		process_command(command);
+		strcpy(prog_name, "sudo rmmod psvis");
+		struct command_t *remove_command=malloc(sizeof(struct command_t));
+		memset(remove_command, 0, sizeof(struct command_t)); 
+		parse_command(prog_name,remove_command);
+		process_command(remove_command);
 		return SUCCESS;
 		
 	}

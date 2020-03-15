@@ -7,7 +7,8 @@ url = "https://github.com/"
 
 print("Please enter a username")
 if sys.argv:
-	url += sys.argv[0]
+	url += sys.argv[1]
+	print(url)
 	content = requests.get(url)
 	if content:
 		print("User exists")

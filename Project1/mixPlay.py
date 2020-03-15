@@ -1,8 +1,17 @@
-import os
-import random
+import os 
+import requests
 import sys
-music_list = os.popen("ls | grep .*.mp3").readlines()
-number_of_songs = int(sys.argv[1])
-for i in range(0,number_of_songs):
-	song_number =  random.randint(0,len(music_list)-1)
-	os.system("play "+os.getcwd()+"/"+music_list[song_number])
+
+
+url = "https://github.com/"
+
+print("Please enter a username")
+if sys.argv:
+	url += sys.argv[0]
+	content = requests.get(url)
+	if content:
+		print("User exists")
+	else:
+		print("User does not exist")
+else:
+	print("Please enter a username")

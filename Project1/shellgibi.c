@@ -474,32 +474,30 @@ int execute_command(struct command_t *command){
 }
 //takes a number as an argument and plays this many random songs from your current working directory
 void mixPlay(struct command_t *command){
-		if(fork() == 0){
-		   char cwd[SIZE];
-		   getcwd(cwd,SIZE);
-		   strcat(cwd,"/mixPlay.py");
-		   const char* play[] = { "python", cwd, command->args[0], 0};
-            execvp(play[0], play);
-            perror("execvp play");
-            exit(1);
-		}
-		else
-			wait(NULL);
-
-	
-	}
+	char cwd[SIZE];
+	getcwd(cwd,SIZE);
+	strcat(cwd,"/mixPlay.py");
+	strcpy(command->name,"python");
+	command->args[1] = (char *)malloc(SIZE);
+	strcpy(command->args[1], command->args[0]);
+	command->args[0] = (char *)malloc(SIZE);
+	strcpy(command->args[0], cwd);
+	command->arg_count = 2;
+	process_command(command);
+	exit(1);
+}
 //no arguments. It parses the data in the main page of bbc and 
 //prints you the daily titles
 void bbc(struct command_t *command){
-	 char cwd[SIZE];
-	 getcwd(cwd,SIZE);
-	 strcat(cwd,"/parser.py");
-	 command->args[0] = (char *)malloc(SIZE);
-	 strcpy(command->args[0],cwd);
-	 strcpy(command->name,"python");
-	 command->arg_count = 1;
-	 process_command(command);
-	}
+	char cwd[SIZE];
+	getcwd(cwd,SIZE);
+	strcat(cwd,"/parser.py");
+	command->args[0] = (char *)malloc(SIZE);
+	strcpy(command->args[0],cwd);
+	strcpy(command->name,"python");
+	command->arg_count = 1;
+	process_command(command);
+}
 
 void play_alarm(struct command_t *command_given){
 	int pid = fork();

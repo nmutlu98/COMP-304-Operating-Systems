@@ -1,0 +1,1 @@
+cmd_/home/necla/Masaüstü/COMP-304-Operating-Systems/Project1/psvis.mod := { echo  /home/necla/Masaüstü/COMP-304-Operating-Systems/Project1/psvis.o; echo; } > /home/necla/Masaüstü/COMP-304-Operating-Systems/Project1/psvis.mod

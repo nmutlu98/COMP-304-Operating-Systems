@@ -7,27 +7,30 @@
 #include<vector>
 #include<cstdlib>
 #include<string.h>
+#include<queue>
 using namespace std;
 pthread_t tower;
 int plane_counter = 0;
-int landings = 0;
-int taking = 0;
 pthread_cond_t runway_permission_landings;
 pthread_cond_t runway_permission_taking_offs;
 pthread_cond_t completed;
 pthread_mutex_t runway_mutex;
+pthread_mutex_t landing_queue_mutex;
+pthread_mutex_t taking_off_queue_mutex;
 pthread_mutex_t counting_mutex;
 pthread_mutex_t in_progress_mutex;
 bool simulation_finished = false;
+bool tower_destroyed = false;
 struct plane{
 	pthread_t plane_thread;
 	int index;
 	bool is_landing;
 	int plane_id;
 	bool completed_action = false;
+	struct plane* next;
 };
-vector<struct plane*> landing_planes;
-vector<struct plane*> taking_off_planes;
+queue<struct plane*> landing_planes;
+queue<struct plane*> taking_off_planes;
  /****************************************************************************** 
   pthread_sleep takes an integer number of seconds to pause the current thread 
   original by Yingwu Zhu
@@ -61,35 +64,42 @@ int pthread_sleep (int seconds)
    return res;
 
 }
-
 double random_generator(){ //BUNA Bİ GÖZ AT ÇOK DA RANDOM DURMUYIR
 	return (double)(rand() % 100)/100;
 }
-void* notify_tower_landing(void* plane_id){
+void* notify_tower_landing(void* plane){
 	
-	long long data = reinterpret_cast<long long>(plane_id);
-	int id = static_cast<int>(data);
+	struct plane* landing_plane = (struct plane*) plane;
+	pthread_mutex_lock(&landing_queue_mutex);
+	landing_planes.push(landing_plane);
+	pthread_mutex_unlock(&landing_queue_mutex);
+	int id = landing_plane->plane_id;
 	pthread_mutex_lock(&runway_mutex);
 	pthread_cond_wait(&runway_permission_landings, &runway_mutex);
-	pthread_sleep(2);
-	pthread_mutex_lock(&counting_mutex);
+	while(landing_planes.front()->plane_id != landing_plane->plane_id){
+		pthread_cond_wait(&runway_permission_landings, &runway_mutex);
+	}
+	landing_plane->completed_action = true;
 	cout<<"LANDING "<<id<<endl;
-	landings--;
-	pthread_mutex_unlock(&counting_mutex);
-	pthread_mutex_unlock(&runway_mutex);	
+	pthread_mutex_unlock(&runway_mutex);
+		cout<<"THIS PLANE COMPLETEd"<<endl;	
 }
-void* notify_tower_taking_off(void* plane_id){
+void* notify_tower_taking_off(void* plane){
 	
-	long long data = reinterpret_cast<long long>(plane_id);
-	int id = static_cast<int>(data);
+	struct plane* taking_off_plane = (struct plane*) plane;
+	pthread_mutex_lock(&taking_off_queue_mutex);
+	taking_off_planes.push(taking_off_plane);
+	pthread_mutex_unlock(&taking_off_queue_mutex);
+	int id = taking_off_plane->plane_id;
+	pthread_mutex_unlock(&taking_off_queue_mutex);
 	pthread_mutex_lock(&runway_mutex);
 	pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
-	pthread_sleep(2);
-	pthread_mutex_lock(&counting_mutex);
+	while(taking_off_planes.front()->plane_id != taking_off_plane->plane_id)
+		pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
+	taking_off_plane->completed_action = true;
 	cout<<"TAKING OFF "<<id<<endl;
-	taking--;
-	pthread_mutex_unlock(&counting_mutex);
 	pthread_mutex_unlock(&runway_mutex);
+	cout<<"THIS PLANE COMPLETEd"<<endl;
 	return NULL;
 } 
 void *create_plane(double p){
@@ -102,40 +112,49 @@ void *create_plane(double p){
 		new_plane->plane_id = plane_counter;
 		cout<<"TAKING OF "<<new_plane->plane_id<<" CREATED"<<endl;
 		plane_counter++;
-		taking++;
 		pthread_mutex_unlock(&counting_mutex),
 		new_plane->index = 0;
 		new_plane->is_landing = false;
 		new_plane->plane_thread = taking_off;
-		pthread_create(&taking_off, NULL, notify_tower_taking_off,(void*)new_plane->plane_id);
+		pthread_create(&taking_off, NULL, notify_tower_taking_off,(void*)new_plane);
 	}else{// p
 		pthread_t landing;
 		pthread_mutex_lock(&counting_mutex);
 		new_plane->plane_id = plane_counter;
 		cout<<"LANDING "<<new_plane->plane_id<<" CREATED"<<endl;
 		plane_counter++;
-		landings++;
 		pthread_mutex_unlock(&counting_mutex);
 		new_plane->index = 0;
 		new_plane->is_landing = true;
 		new_plane->plane_thread = landing;
-		pthread_create(&landing, NULL, notify_tower_landing, (void*)new_plane->plane_id);
+		pthread_create(&landing, NULL, notify_tower_landing, (void*)new_plane);
 	}
+	tower_destroyed = true;
 	return NULL;
 }
 void *check_notifications(void *ptr){
 	while(!simulation_finished){
-		while(landings != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
+		while(!simulation_finished && landing_planes.size() != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
 			pthread_mutex_lock(&runway_mutex);
-			pthread_cond_signal(&runway_permission_landings);
+			pthread_cond_broadcast(&runway_permission_landings);
 			pthread_mutex_unlock(&runway_mutex);
+			pthread_sleep(2);
+			pthread_mutex_lock(&landing_queue_mutex);
+			if(landing_planes.front()->completed_action)
+				landing_planes.pop();
+			pthread_mutex_unlock(&landing_queue_mutex);
 			
 		}
 		
-		if(taking != 0){
+		if(taking_off_planes.size() != 0){
 			pthread_mutex_lock(&runway_mutex);
-			pthread_cond_signal(&runway_permission_taking_offs);
+			pthread_cond_broadcast(&runway_permission_taking_offs);
 			pthread_mutex_unlock(&runway_mutex);
+			pthread_sleep(2);
+			pthread_mutex_lock(&taking_off_queue_mutex);
+			if(taking_off_planes.front()->completed_action)
+				taking_off_planes.pop();
+			pthread_mutex_unlock(&taking_off_queue_mutex);
 		}
 		
 
@@ -155,9 +174,6 @@ void run_simulation(double simulation_time, double probability){
 		}
 		
 	}
-	while(current_time.tv_sec<end_time+simulation_time){
-		gettimeofday(&current_time, NULL);
-	}
 	simulation_finished = true;
 
 }
@@ -166,6 +182,8 @@ int main(int argc, char* argv[]){
 	pthread_mutex_init(&runway_mutex, NULL);
 	pthread_mutex_init(&counting_mutex, NULL);
 	pthread_mutex_init(&in_progress_mutex, NULL);
+	pthread_mutex_init(&landing_queue_mutex, NULL);
+	pthread_mutex_init(&taking_off_queue_mutex, NULL);
 	pthread_cond_init(&runway_permission_landings, NULL);
 	pthread_cond_init(&runway_permission_taking_offs, NULL);
 	pthread_cond_init(&completed, NULL);
@@ -179,6 +197,8 @@ int main(int argc, char* argv[]){
 		cout<<"INVALID ARGUMENT"<<endl;
 		return NULL;
 	}
-	pthread_exit(NULL);
+	
+	
+	
 	return 0;
 }

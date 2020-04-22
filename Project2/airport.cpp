@@ -18,8 +18,6 @@ pthread_mutex_t landing_queue_mutex;
 pthread_mutex_t taking_off_queue_mutex;
 pthread_mutex_t counting_mutex;
 pthread_mutex_t in_progress_mutex;
-pthread_mutex_t clock_mutex;
-struct timeval emergency_time_counter;
 bool simulation_finished = false;
 bool tower_destroyed = false;
 struct plane{
@@ -152,6 +150,12 @@ void *create_plane(double p){
 	tower_destroyed = true;
 	return NULL;
 }
+void *create_emergency_plane(){
+	struct plane* new_plane = (struct plane*)malloc(sizeof(struct plane*));
+	new_plane->plane_thread = (pthread_t)malloc(sizeof(pthread_t));
+	new_plane->is_emergency = true;
+	cout<<"********************************************I aM UrGeNt************************************************************"<<endl;
+}
 
 void *let_one_to_take_off(){
 	pthread_mutex_lock(&taking_off_queue_mutex);
@@ -231,15 +235,17 @@ void *check_notifications(void *ptr){
 void run_simulation(double simulation_time, double probability){
 	struct timeval current_time;
 	gettimeofday(&current_time, NULL);
-	pthread_mutex_lock(&clock_mutex);
-	emergency_time_counter = current_time;
-	pthread_mutex_unlock(&clock_mutex);
+	struct timeval emergency_counter = current_time;
 	int seconds = current_time.tv_sec;
 	cout<<current_time.tv_sec<<endl;
 	double end_time = current_time.tv_sec + simulation_time;
 	while(current_time.tv_sec < end_time){
 		gettimeofday(&current_time,NULL);
-		if(current_time.tv_sec - seconds == 1){
+		if(current_time.tv_sec-emergency_counter.tv_sec == 5){
+			gettimeofday(&emergency_counter, NULL);
+			cout<<"**********************************I AM I AM URGENT*****************************************"<<endl;
+		}
+		else if(current_time.tv_sec - seconds == 1){
 			seconds++;
 			create_plane(probability);
 		}
@@ -254,7 +260,6 @@ int main(int argc, char* argv[]){
 	pthread_mutex_init(&counting_mutex, NULL);
 	pthread_mutex_init(&in_progress_mutex, NULL);
 	pthread_mutex_init(&landing_queue_mutex, NULL);
-	pthread_mutex_init(&clock_mutex, NULL);
 	pthread_mutex_init(&taking_off_queue_mutex, NULL);
 	pthread_cond_init(&runway_permission_landings, NULL);
 	pthread_cond_init(&runway_permission_taking_offs, NULL);

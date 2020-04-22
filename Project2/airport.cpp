@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -19,18 +18,22 @@ pthread_mutex_t landing_queue_mutex;
 pthread_mutex_t taking_off_queue_mutex;
 pthread_mutex_t counting_mutex;
 pthread_mutex_t in_progress_mutex;
+pthread_mutex_t clock_mutex;
+struct timeval emergency_time_counter;
 bool simulation_finished = false;
 bool tower_destroyed = false;
 struct plane{
 	pthread_t plane_thread;
 	int index;
 	bool is_landing;
+	bool is_emergency = false;
 	int plane_id;
 	bool completed_action = false;
 	struct plane* next;
 };
 queue<struct plane*> landing_planes;
 queue<struct plane*> taking_off_planes;
+queue<struct plane*> emergency;
  /****************************************************************************** 
   pthread_sleep takes an integer number of seconds to pause the current thread 
   original by Yingwu Zhu
@@ -149,37 +152,78 @@ void *create_plane(double p){
 	tower_destroyed = true;
 	return NULL;
 }
-void *check_notifications(void *ptr){
-	while(!simulation_finished){
-		pthread_mutex_lock(&landing_queue_mutex);
+
+void *let_one_to_take_off(){
+	pthread_mutex_lock(&taking_off_queue_mutex);
+	if(taking_off_planes.size() != 0 && taking_off_planes.size() < 5){
+		pthread_mutex_unlock(&taking_off_queue_mutex);
+		pthread_mutex_lock(&runway_mutex);
+		pthread_cond_broadcast(&runway_permission_taking_offs);
+		pthread_mutex_unlock(&runway_mutex);
+		pthread_sleep(2);
 		pthread_mutex_lock(&taking_off_queue_mutex);
-		while(taking_off_planes.size()<5 && landing_planes.size() != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
-			pthread_mutex_unlock(&taking_off_queue_mutex);
-			pthread_mutex_unlock(&landing_queue_mutex);
-			pthread_mutex_lock(&runway_mutex);
-			pthread_cond_broadcast(&runway_permission_landings);
-			pthread_mutex_unlock(&runway_mutex);
-			pthread_sleep(2);
-			pthread_mutex_lock(&landing_queue_mutex);
-			if(landing_planes.front()->completed_action)
-				landing_planes.pop();
-			pthread_mutex_lock(&taking_off_queue_mutex);
-		}
+		if(taking_off_planes.front()->completed_action)
+			taking_off_planes.pop();
+		pthread_mutex_unlock(&taking_off_queue_mutex);
+	}
+	pthread_mutex_unlock(&taking_off_queue_mutex);
+}
+void *let_landings(){
+	pthread_mutex_lock(&landing_queue_mutex);
+	pthread_mutex_lock(&taking_off_queue_mutex);
+	while(taking_off_planes.size()<5 && landing_planes.size() != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
 		pthread_mutex_unlock(&taking_off_queue_mutex);
 		pthread_mutex_unlock(&landing_queue_mutex);
-		pthread_mutex_lock(&taking_off_queue_mutex);
-		if(taking_off_planes.size() != 0){
-			pthread_mutex_unlock(&taking_off_queue_mutex);
-			pthread_mutex_lock(&runway_mutex);
-			pthread_cond_broadcast(&runway_permission_taking_offs);
-			pthread_mutex_unlock(&runway_mutex);
-			pthread_sleep(2);
+		pthread_mutex_lock(&runway_mutex);
+		pthread_cond_broadcast(&runway_permission_landings);
+		pthread_mutex_unlock(&runway_mutex);
+		pthread_sleep(2);
+		pthread_mutex_lock(&landing_queue_mutex);
+		if(landing_planes.front()->completed_action)
+			landing_planes.pop();
 			pthread_mutex_lock(&taking_off_queue_mutex);
-			if(taking_off_planes.front()->completed_action)
-				taking_off_planes.pop();
-			pthread_mutex_unlock(&taking_off_queue_mutex);
 		}
 		pthread_mutex_unlock(&taking_off_queue_mutex);
+		pthread_mutex_unlock(&landing_queue_mutex);	
+		let_one_to_take_off();
+}
+void *let_one_to_land(){
+	pthread_mutex_lock(&landing_queue_mutex);
+	if(landing_planes.size() != 0){
+		pthread_mutex_unlock(&landing_queue_mutex);
+		pthread_mutex_lock(&runway_mutex);
+		pthread_cond_broadcast(&runway_permission_landings);
+		pthread_mutex_unlock(&runway_mutex);
+		pthread_sleep(2);
+		pthread_mutex_lock(&landing_queue_mutex);
+		if(landing_planes.front()->completed_action)
+			landing_planes.pop();
+		pthread_mutex_unlock(&landing_queue_mutex);
+	}
+	pthread_mutex_unlock(&landing_queue_mutex);
+
+}
+void *let_taking_offs(){
+	pthread_mutex_lock(&taking_off_queue_mutex);
+	while(taking_off_planes.size() >= 5){
+		pthread_mutex_unlock(&taking_off_queue_mutex);
+		pthread_mutex_lock(&runway_mutex);
+		pthread_cond_broadcast(&runway_permission_taking_offs);
+		pthread_mutex_unlock(&runway_mutex);
+		pthread_sleep(2);
+		pthread_mutex_lock(&taking_off_queue_mutex);
+		if(taking_off_planes.front()->completed_action)
+			taking_off_planes.pop();
+		pthread_mutex_unlock(&taking_off_queue_mutex);
+		let_one_to_land();
+		pthread_mutex_lock(&taking_off_queue_mutex);
+	}
+	pthread_mutex_unlock(&taking_off_queue_mutex);
+}
+void *check_notifications(void *ptr){
+	while(!simulation_finished){
+		let_landings();
+		let_taking_offs();
 
 	}
 	return NULL;
@@ -187,6 +231,9 @@ void *check_notifications(void *ptr){
 void run_simulation(double simulation_time, double probability){
 	struct timeval current_time;
 	gettimeofday(&current_time, NULL);
+	pthread_mutex_lock(&clock_mutex);
+	emergency_time_counter = current_time;
+	pthread_mutex_unlock(&clock_mutex);
 	int seconds = current_time.tv_sec;
 	cout<<current_time.tv_sec<<endl;
 	double end_time = current_time.tv_sec + simulation_time;
@@ -207,6 +254,7 @@ int main(int argc, char* argv[]){
 	pthread_mutex_init(&counting_mutex, NULL);
 	pthread_mutex_init(&in_progress_mutex, NULL);
 	pthread_mutex_init(&landing_queue_mutex, NULL);
+	pthread_mutex_init(&clock_mutex, NULL);
 	pthread_mutex_init(&taking_off_queue_mutex, NULL);
 	pthread_cond_init(&runway_permission_landings, NULL);
 	pthread_cond_init(&runway_permission_taking_offs, NULL);

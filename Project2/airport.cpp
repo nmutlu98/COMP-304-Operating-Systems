@@ -72,6 +72,12 @@ void* notify_tower_landing(void* plane){
 	struct plane* landing_plane = (struct plane*) plane;
 	pthread_mutex_lock(&landing_queue_mutex);
 	landing_planes.push(landing_plane);
+	struct timeval current_time;
+	gettimeofday(&current_time, NULL);
+	cout<<"******************"<<endl;
+	cout<<"YARATILDIM LANDING"<<landing_plane->plane_id<<endl;
+	cout<<current_time.tv_sec<<endl;
+	cout<<"********************"<<endl;
 	pthread_mutex_unlock(&landing_queue_mutex);
 	int id = landing_plane->plane_id;
 	pthread_mutex_lock(&runway_mutex);
@@ -80,7 +86,11 @@ void* notify_tower_landing(void* plane){
 		pthread_cond_wait(&runway_permission_landings, &runway_mutex);
 	}
 	landing_plane->completed_action = true;
+	cout<<"****************"<<endl;
 	cout<<"LANDING "<<id<<endl;
+	gettimeofday(&current_time, NULL);
+	cout<<current_time.tv_sec<<endl;
+	cout<<"*********************"<<endl;
 	pthread_mutex_unlock(&runway_mutex);
 		cout<<"THIS PLANE COMPLETEd"<<endl;	
 }
@@ -89,15 +99,24 @@ void* notify_tower_taking_off(void* plane){
 	struct plane* taking_off_plane = (struct plane*) plane;
 	pthread_mutex_lock(&taking_off_queue_mutex);
 	taking_off_planes.push(taking_off_plane);
+	struct timeval current_time;
+	gettimeofday(&current_time, NULL);
+	cout<<"*************************"<<endl;
+	cout<<"YARATILDIM OFF"<<taking_off_plane->plane_id<<endl;
+	cout<<current_time.tv_sec<<endl;
+	cout<<"***********************"<<endl;
 	pthread_mutex_unlock(&taking_off_queue_mutex);
 	int id = taking_off_plane->plane_id;
-	pthread_mutex_unlock(&taking_off_queue_mutex);
 	pthread_mutex_lock(&runway_mutex);
 	pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
 	while(taking_off_planes.front()->plane_id != taking_off_plane->plane_id)
 		pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
 	taking_off_plane->completed_action = true;
+	cout<<"**************************************"<<endl;
 	cout<<"TAKING OFF "<<id<<endl;
+	cout<<"********************************"<<endl;
+	gettimeofday(&current_time, NULL);
+	cout<<current_time.tv_sec<<endl;
 	pthread_mutex_unlock(&runway_mutex);
 	cout<<"THIS PLANE COMPLETEd"<<endl;
 	return NULL;
@@ -110,7 +129,6 @@ void *create_plane(double p){
 		pthread_t taking_off;
 		pthread_mutex_lock(&counting_mutex);
 		new_plane->plane_id = plane_counter;
-		cout<<"TAKING OF "<<new_plane->plane_id<<" CREATED"<<endl;
 		plane_counter++;
 		pthread_mutex_unlock(&counting_mutex),
 		new_plane->index = 0;
@@ -121,7 +139,6 @@ void *create_plane(double p){
 		pthread_t landing;
 		pthread_mutex_lock(&counting_mutex);
 		new_plane->plane_id = plane_counter;
-		cout<<"LANDING "<<new_plane->plane_id<<" CREATED"<<endl;
 		plane_counter++;
 		pthread_mutex_unlock(&counting_mutex);
 		new_plane->index = 0;
@@ -134,7 +151,11 @@ void *create_plane(double p){
 }
 void *check_notifications(void *ptr){
 	while(!simulation_finished){
-		while(!simulation_finished && landing_planes.size() != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
+		pthread_mutex_lock(&landing_queue_mutex);
+		pthread_mutex_lock(&taking_off_queue_mutex);
+		while(taking_off_planes.size()<5 && landing_planes.size() != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
+			pthread_mutex_unlock(&taking_off_queue_mutex);
+			pthread_mutex_unlock(&landing_queue_mutex);
 			pthread_mutex_lock(&runway_mutex);
 			pthread_cond_broadcast(&runway_permission_landings);
 			pthread_mutex_unlock(&runway_mutex);
@@ -142,11 +163,13 @@ void *check_notifications(void *ptr){
 			pthread_mutex_lock(&landing_queue_mutex);
 			if(landing_planes.front()->completed_action)
 				landing_planes.pop();
-			pthread_mutex_unlock(&landing_queue_mutex);
-			
+			pthread_mutex_lock(&taking_off_queue_mutex);
 		}
-		
+		pthread_mutex_unlock(&taking_off_queue_mutex);
+		pthread_mutex_unlock(&landing_queue_mutex);
+		pthread_mutex_lock(&taking_off_queue_mutex);
 		if(taking_off_planes.size() != 0){
+			pthread_mutex_unlock(&taking_off_queue_mutex);
 			pthread_mutex_lock(&runway_mutex);
 			pthread_cond_broadcast(&runway_permission_taking_offs);
 			pthread_mutex_unlock(&runway_mutex);
@@ -156,7 +179,7 @@ void *check_notifications(void *ptr){
 				taking_off_planes.pop();
 			pthread_mutex_unlock(&taking_off_queue_mutex);
 		}
-		
+		pthread_mutex_unlock(&taking_off_queue_mutex);
 
 	}
 	return NULL;
@@ -165,6 +188,7 @@ void run_simulation(double simulation_time, double probability){
 	struct timeval current_time;
 	gettimeofday(&current_time, NULL);
 	int seconds = current_time.tv_sec;
+	cout<<current_time.tv_sec<<endl;
 	double end_time = current_time.tv_sec + simulation_time;
 	while(current_time.tv_sec < end_time){
 		gettimeofday(&current_time,NULL);

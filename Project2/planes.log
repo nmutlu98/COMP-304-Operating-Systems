@@ -1,0 +1,54 @@
+Plane id: 0
+Status: L
+Request time: 0
+Runway Time: 2
+Turnaround Time: 2
+
+Plane id: 4
+Status: L
+Request time: 2
+Runway Time: 4
+Turnaround Time: 2
+
+Plane id: 6
+Status: L
+Request time: 4
+Runway Time: 6
+Turnaround Time: 2
+
+Plane id: 8
+Status: E
+Request time: 5
+Runway Time: 8
+Turnaround Time: 3
+
+Plane id: 1
+Status: D
+Request time: 0
+Runway Time: 10
+Turnaround Time: 10
+
+Plane id: 16
+Status: E
+Request time: 10
+Runway Time: 12
+Turnaround Time: 2
+
+Plane id: 14
+Status: L
+Request time: 8
+Runway Time: 14
+Turnaround Time: 6
+
+Plane id: 3
+Status: D
+Request time: 1
+Runway Time: 16
+Turnaround Time: 15
+
+Plane id: 26
+Status: E
+Request time: 15
+Runway Time: 18
+Turnaround Time: 3
+

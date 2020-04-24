@@ -8,24 +8,26 @@
 #include<string.h>
 #include<queue>
 #include<fstream>
+#include<ctime>
 #define filename "planes.log"
+#define EMERGENCY_INTERVAL 40
 using namespace std;
 pthread_t tower;
 int plane_counter = 0;
-pthread_cond_t runway_permission_landings;
-pthread_cond_t runway_permission_taking_offs;
-pthread_cond_t runway_permission_emergencies;
-pthread_cond_t completed;
-pthread_mutex_t runway_mutex;
-pthread_mutex_t landing_queue_mutex;
-pthread_mutex_t taking_off_queue_mutex;
-pthread_mutex_t counting_mutex;
-pthread_mutex_t in_progress_mutex;
-pthread_mutex_t emergency_mutex;
-struct timeval start_time;
+pthread_cond_t runway_permission_landings; //a new landing plane waits on this cond until it is signalled by Traffic Controller(TC) 
+pthread_cond_t runway_permission_taking_offs;//a new departing plane waits on this cond until it is signalled by TC
+pthread_cond_t runway_permission_emergencies;//a new emergency plane waits on this cond until it is signalled by TC
+pthread_mutex_t runway_mutex; //the plane that has the permission will hold this mutex to use runway
+pthread_mutex_t landing_queue_mutex;//controls the access to landing planes queue
+pthread_mutex_t taking_off_queue_mutex;//controls the access to departing planes queue
+pthread_mutex_t counting_mutex;//controls the access to plane_counter which is used as id
+pthread_mutex_t emergency_mutex;//controls the access to the emergency planes queue
+pthread_t reporting_thread;//reports the planes on air and ground
+struct timeval start_time;//start time of simulation
 bool simulation_finished = false;
-bool tower_destroyed = false;
-ofstream logfile;
+bool time_came = false;//false if the program didnt reach the  nth second, true otherwise
+int n;//commandline argument for reporting time
+ofstream logfile;//logfile stream
 struct plane{
 	pthread_t plane_thread;
 	int index;
@@ -73,8 +75,9 @@ int pthread_sleep (int seconds)
    return res;
 
 }
-double random_generator(){ //BUNA Bİ GÖZ AT ÇOK DA RANDOM DURMUYIR
-	return (double)(rand() % 100)/100;
+//generates a random value for probability purposes
+double random_generator(){ 
+	return (double)(rand() % RAND_MAX);
 }
 void *print_log(struct plane* target){
 	gettimeofday(target->runway_time, NULL);
@@ -97,9 +100,6 @@ void* notify_emergency(void* plane){
 	pthread_mutex_lock(&emergency_mutex);
 	emergency.push(urgent_plane);
 	gettimeofday(urgent_plane->request_time, NULL);
-	/*cout<<"******************"<<endl;
-	cout<<"YARATILDIM EMERGENCY"<<urgent_plane->plane_id<<"REQUEST TIME "<<urgent_plane->request_time->tv_sec<<endl;
-	cout<<"********************"<<endl;*/
 	pthread_mutex_unlock(&emergency_mutex);
 	int id = urgent_plane->plane_id;
 	pthread_mutex_lock(&runway_mutex);
@@ -108,9 +108,6 @@ void* notify_emergency(void* plane){
 		pthread_cond_wait(&runway_permission_emergencies, &runway_mutex);
 	}
 	urgent_plane->completed_action = true;
-	/*cout<<"****************"<<endl;
-	cout<<"EMERGENCY "<<id<<endl;
-	cout<<"*********************"<<endl;*/
 	pthread_mutex_unlock(&runway_mutex);
 }
 void* notify_tower_landing(void* plane){
@@ -119,9 +116,6 @@ void* notify_tower_landing(void* plane){
 	pthread_mutex_lock(&landing_queue_mutex);
 	landing_planes.push(landing_plane);
 	gettimeofday(landing_plane->request_time, NULL);
-	/*cout<<"******************"<<endl;
-	cout<<"YARATILDIM LANDING"<<landing_plane->plane_id<<"REQUEST TIME"<<landing_plane->request_time->tv_sec<<endl;
-	cout<<"********************"<<endl;*/
 	pthread_mutex_unlock(&landing_queue_mutex);
 	int id = landing_plane->plane_id;
 	pthread_mutex_lock(&runway_mutex);
@@ -130,9 +124,6 @@ void* notify_tower_landing(void* plane){
 		pthread_cond_wait(&runway_permission_landings, &runway_mutex);
 	}
 	landing_plane->completed_action = true;
-	/*cout<<"****************"<<endl;
-	cout<<"LANDING "<<id<<endl;
-	cout<<"*********************"<<endl;*/
 	pthread_mutex_unlock(&runway_mutex);
 }
 void* notify_tower_taking_off(void* plane){
@@ -141,9 +132,6 @@ void* notify_tower_taking_off(void* plane){
 	pthread_mutex_lock(&taking_off_queue_mutex);
 	taking_off_planes.push(taking_off_plane);
 	gettimeofday(taking_off_plane->request_time, NULL);
-	/*cout<<"*************************"<<endl;
-	cout<<"YARATILDIM OFF"<<taking_off_plane->plane_id<<"RQUEST TIME"<<taking_off_plane->request_time->tv_sec<<endl;
-	cout<<"***********************"<<endl;*/
 	pthread_mutex_unlock(&taking_off_queue_mutex);
 	int id = taking_off_plane->plane_id;
 	pthread_mutex_lock(&runway_mutex);
@@ -151,9 +139,6 @@ void* notify_tower_taking_off(void* plane){
 	while(taking_off_planes.front()->plane_id != taking_off_plane->plane_id)
 		pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
 	taking_off_plane->completed_action = true;
-	/*cout<<"**************************************"<<endl;
-	cout<<"TAKING OFF "<<id<<endl;
-	cout<<"********************************"<<endl;*/
 	pthread_mutex_unlock(&runway_mutex);
 	return NULL;
 } 
@@ -188,7 +173,6 @@ void *create_plane(double p){
 		new_plane->plane_thread = landing;
 		pthread_create(&landing, NULL, notify_tower_landing, (void*)new_plane);
 	}
-	tower_destroyed = true;
 	return NULL;
 }
 void *create_emergency_plane(){
@@ -245,7 +229,7 @@ void *let_one_to_take_off(){
 void *let_landings(){
 	pthread_mutex_lock(&landing_queue_mutex);
 	pthread_mutex_lock(&taking_off_queue_mutex);
-	while(taking_off_planes.size()<5 && landing_planes.size() != 0){ //BUNLARI CHECK EDERKEN DE RACE CONDITION OLABILIR LOCK LAZIM
+	while(taking_off_planes.size()<5 && landing_planes.size() != 0){ 
 		pthread_mutex_unlock(&taking_off_queue_mutex);
 		pthread_mutex_unlock(&landing_queue_mutex);
 		let_emergencies();
@@ -313,16 +297,61 @@ void *check_notifications(void *ptr){
 	}
 	return NULL;
 }
+void* report_planes(void* ptr){
+	struct timeval last_update;
+	struct timeval current_time;
+	gettimeofday(&current_time, NULL);
+	while(current_time.tv_sec-start_time.tv_sec < n){
+		gettimeofday(&current_time, NULL);
+	}
+	last_update = current_time;
+	while(!simulation_finished){
+		queue<struct plane*> landings;
+		queue<struct plane*>emergencies;
+		queue<struct plane*> departings;
+		if(current_time.tv_sec-last_update.tv_sec == 1){
+			last_update = current_time;
+			pthread_mutex_lock(&landing_queue_mutex);
+			landings = landing_planes;
+			pthread_mutex_unlock(&landing_queue_mutex);
+			pthread_mutex_lock(&emergency_mutex);
+			emergencies = emergency;
+			pthread_mutex_unlock(&emergency_mutex);
+			pthread_mutex_lock(&taking_off_queue_mutex);
+			departings = taking_off_planes;
+			pthread_mutex_unlock(&taking_off_queue_mutex);
+			cout<<"At "<<current_time.tv_sec-start_time.tv_sec<<" seconds on air: ";
+			while(!landings.empty()){
+				cout<<landings.front()->plane_id<<" ";
+				landings.pop();
+			}
+			while(!emergencies.empty()){
+				cout<<emergencies.front()->plane_id<<" ";
+				emergencies.pop();
+			}
+			cout<<endl;
+			cout<<"At "<<current_time.tv_sec-start_time.tv_sec<<" seconds on ground: ";
+			while(!departings.empty()){
+				cout<<departings.front()->plane_id<<" ";
+				departings.pop();
+			}
+			cout<<endl;
+		
+		}
+		gettimeofday(&current_time, NULL);
+	}
+}
 void run_simulation(double simulation_time, double probability){
 	struct timeval current_time;
 	gettimeofday(&current_time, NULL);
 	start_time = current_time;
+	pthread_create(&reporting_thread, NULL, report_planes, NULL);
 	struct timeval emergency_counter = current_time;
 	int seconds = current_time.tv_sec;
 	double end_time = current_time.tv_sec + simulation_time;
 	while(current_time.tv_sec < end_time){
 		gettimeofday(&current_time,NULL);
-		if(current_time.tv_sec-emergency_counter.tv_sec == 5){
+		if(current_time.tv_sec-emergency_counter.tv_sec == EMERGENCY_INTERVAL){
 			gettimeofday(&emergency_counter, NULL);
 			create_emergency_plane();
 		}
@@ -334,32 +363,31 @@ void run_simulation(double simulation_time, double probability){
 	}
 	simulation_finished = true;
 
+
 }
 int main(int argc, char* argv[]){
+	srand(time(0));
 	logfile.open(filename);
 	pthread_create(&tower, NULL, check_notifications, NULL);
 	pthread_mutex_init(&runway_mutex, NULL);
 	pthread_mutex_init(&counting_mutex, NULL);
-	pthread_mutex_init(&in_progress_mutex, NULL);
 	pthread_mutex_init(&landing_queue_mutex, NULL);
 	pthread_mutex_init(&emergency_mutex, NULL);
 	pthread_mutex_init(&taking_off_queue_mutex, NULL);
 	pthread_cond_init(&runway_permission_landings, NULL);
 	pthread_cond_init(&runway_permission_emergencies, NULL);
 	pthread_cond_init(&runway_permission_taking_offs, NULL);
-	pthread_cond_init(&completed, NULL);
 	create_plane(1);//Initial landing plane
-	create_plane(0);//Initial taking off plane
-	if(strcmp("-s", argv[1]) == 0 && strcmp("-p", argv[3]) == 0)
+	create_plane(0);//Initial taking off planem
+	if(strcmp("-s", argv[1]) == 0 && strcmp("-p", argv[3]) == 0 && strcmp("-n", argv[5]) == 0){
+		n = atof(argv[6]);
 		run_simulation(atof(argv[2]), atof(argv[4]));
-	else if(strcmp("-p", argv[1]) == 0 && strcmp("-s", argv[3]) == 0)
+	}else if(strcmp("-p", argv[1]) == 0 && strcmp("-s", argv[3]) == 0 && strcmp("-n", argv[5]) == 0){
+		n = atof(argv[6]);
 		run_simulation( atof(argv[4]), atof(argv[2]));
-	else{
+	}else{
 		cout<<"INVALID ARGUMENT"<<endl;
 		return NULL;
 	}
-	
-	
-	
 	return 0;
 }

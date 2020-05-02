@@ -1,174 +1,312 @@
-Plane id: 1
-Status: D
+Plane id: 0
+Status: L
 Request time: 0
 Runway Time: 2
 Turnaround Time: 2
 
-Plane id: 3
+Plane id: 1
 Status: D
 Request time: 0
+Runway Time: 10
+Turnaround Time: 10
+
+Plane id: 2
+Status: L
+Request time: 1
 Runway Time: 4
-Turnaround Time: 4
+Turnaround Time: 3
+
+Plane id: 3
+Status: D
+Request time: 2
+Runway Time: 14
+Turnaround Time: 12
 
 Plane id: 5
 Status: D
-Request time: 1
+Request time: 3
+Runway Time: 18
+Turnaround Time: 15
+
+Plane id: 4
+Status: L
+Request time: 4
 Runway Time: 6
-Turnaround Time: 5
+Turnaround Time: 2
 
 Plane id: 7
 Status: D
-Request time: 2
+Request time: 5
+Runway Time: 22
+Turnaround Time: 17
+
+Plane id: 6
+Status: L
+Request time: 6
 Runway Time: 8
-Turnaround Time: 6
+Turnaround Time: 2
 
 Plane id: 9
 Status: D
-Request time: 3
-Runway Time: 10
-Turnaround Time: 7
+Request time: 7
+Runway Time: 26
+Turnaround Time: 19
+
+Plane id: 8
+Status: L
+Request time: 8
+Runway Time: 12
+Turnaround Time: 4
 
 Plane id: 11
 Status: D
-Request time: 4
-Runway Time: 12
-Turnaround Time: 8
+Request time: 9
+Runway Time: 30
+Turnaround Time: 21
 
-Plane id: 13
-Status: D
-Request time: 5
-Runway Time: 14
+Plane id: 10
+Status: L
+Request time: 10
+Runway Time: 16
+Turnaround Time: 6
+
+Plane id: 12
+Status: L
+Request time: 11
+Runway Time: 20
 Turnaround Time: 9
 
-Plane id: 15
-Status: D
-Request time: 6
-Runway Time: 16
-Turnaround Time: 10
-
-Plane id: 17
-Status: D
-Request time: 7
-Runway Time: 18
-Turnaround Time: 11
-
-Plane id: 19
-Status: D
-Request time: 8
-Runway Time: 20
+Plane id: 14
+Status: L
+Request time: 12
+Runway Time: 24
 Turnaround Time: 12
 
-Plane id: 21
-Status: D
-Request time: 9
-Runway Time: 22
-Turnaround Time: 13
-
-Plane id: 23
-Status: D
-Request time: 10
-Runway Time: 24
-Turnaround Time: 14
-
-Plane id: 25
-Status: D
-Request time: 11
-Runway Time: 26
+Plane id: 16
+Status: L
+Request time: 13
+Runway Time: 28
 Turnaround Time: 15
 
-Plane id: 27
-Status: D
-Request time: 12
-Runway Time: 28
-Turnaround Time: 16
-
-Plane id: 29
-Status: D
-Request time: 13
-Runway Time: 30
-Turnaround Time: 17
-
-Plane id: 31
-Status: D
+Plane id: 18
+Status: L
 Request time: 14
 Runway Time: 32
 Turnaround Time: 18
 
-Plane id: 33
+Plane id: 13
 Status: D
 Request time: 15
 Runway Time: 34
 Turnaround Time: 19
 
-Plane id: 35
+Plane id: 15
 Status: D
 Request time: 16
-Runway Time: 36
-Turnaround Time: 20
-
-Plane id: 37
-Status: D
-Request time: 17
 Runway Time: 38
-Turnaround Time: 21
-
-Plane id: 39
-Status: D
-Request time: 18
-Runway Time: 40
 Turnaround Time: 22
 
-Plane id: 82
-Status: E
-Request time: 40
-Runway Time: 42
-Turnaround Time: 2
-
-Plane id: 41
+Plane id: 17
 Status: D
-Request time: 19
+Request time: 17
 Runway Time: 44
-Turnaround Time: 25
+Turnaround Time: 27
 
-Plane id: 43
-Status: D
+Plane id: 20
+Status: L
+Request time: 18
+Runway Time: 36
+Turnaround Time: 18
+
+Plane id: 22
+Status: L
+Request time: 19
+Runway Time: 40
+Turnaround Time: 21
+
+Plane id: 24
+Status: L
 Request time: 20
 Runway Time: 46
 Turnaround Time: 26
 
-Plane id: 45
+Plane id: 19
 Status: D
 Request time: 21
 Runway Time: 48
 Turnaround Time: 27
 
-Plane id: 47
+Plane id: 21
 Status: D
 Request time: 22
-Runway Time: 50
-Turnaround Time: 28
-
-Plane id: 49
-Status: D
-Request time: 23
 Runway Time: 52
-Turnaround Time: 29
+Turnaround Time: 30
 
-Plane id: 51
-Status: D
+Plane id: 26
+Status: L
+Request time: 23
+Runway Time: 50
+Turnaround Time: 27
+
+Plane id: 28
+Status: L
 Request time: 24
 Runway Time: 54
 Turnaround Time: 30
 
-Plane id: 53
+Plane id: 23
 Status: D
 Request time: 25
 Runway Time: 56
 Turnaround Time: 31
 
-Plane id: 55
+Plane id: 25
 Status: D
 Request time: 26
+Runway Time: -1588297989
+Turnaround Time: -1588298015
+
+Plane id: 27
+Status: D
+Request time: 27
+
+Plane id: 30
+Status: L
+Request time: 28
 Runway Time: 58
-Turnaround Time: 32
+Turnaround Time: 30
+
+Plane id: 29
+Status: D
+Request time: 29
+
+Plane id: 31
+Status: D
+Request time: 30
+
+Plane id: 32
+Status: L
+Request time: 31
+
+Plane id: 34
+Status: L
+Request time: 32
+
+Plane id: 33
+Status: D
+Request time: 33
+
+Plane id: 36
+Status: L
+Request time: 34
+
+Plane id: 35
+Status: D
+Request time: 35
+
+Plane id: 37
+Status: D
+Request time: 36
+
+Plane id: 39
+Status: D
+Request time: 37
+
+Plane id: 38
+Status: L
+Request time: 38
+
+Plane id: 41
+Status: D
+Request time: 39
+
+Plane id: 40
+Status: E
+Request time: 40
+Runway Time: 42
+Turnaround Time: 2
+
+Plane id: 42
+Status: L
+Request time: 40
+
+Plane id: 43
+Status: D
+Request time: 41
+
+Plane id: 44
+Status: L
+Request time: 42
+
+Plane id: 46
+Status: L
+Request time: 43
+
+Plane id: 48
+Status: L
+Request time: 44
+
+Plane id: 45
+Status: D
+Request time: 45
+
+Plane id: 47
+Status: D
+Request time: 46
+
+Plane id: 50
+Status: L
+Request time: 47
+
+Plane id: 49
+Status: D
+Request time: 48
+
+Plane id: 51
+Status: D
+Request time: 49
+
+Plane id: 53
+Status: D
+Request time: 50
+
+Plane id: 52
+Status: L
+Request time: 51
+
+Plane id: 55
+Status: D
+Request time: 52
+
+Plane id: 54
+Status: L
+Request time: 53
+
+Plane id: 56
+Status: L
+Request time: 54
+
+Plane id: 58
+Status: L
+Request time: 55
+
+Plane id: 57
+Status: D
+Request time: 56
+
+Plane id: 59
+Status: D
+Request time: 57
+
+Plane id: 60
+Status: L
+Request time: 58
+
+Plane id: 62
+Status: L
+Request time: 59
+
+Plane id: 61
+Status: D
+Request time: 60
 

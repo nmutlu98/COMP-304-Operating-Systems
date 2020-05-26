@@ -9,10 +9,13 @@
 #include<queue>
 #include<fstream>
 #include<ctime>
+#include<unistd.h>
 #define filename "planes.log"
 #define EMERGENCY_INTERVAL 40
 using namespace std;
 pthread_t tower;
+double p;//probability of a landing plane
+int simulation_time;
 int landing_plane_counter = 0;
 int departing_plane_counter = 1;
 pthread_cond_t runway_permission_landings; //a new landing plane waits on this cond until it is signalled by Traffic Controller(TC) 
@@ -99,6 +102,7 @@ void* notify_emergency(void* plane){
 	while(emergency.front()->plane_id != urgent_plane->plane_id){ //if it is not the first plane in the queue it continues to wait
 		pthread_cond_wait(&runway_permission_emergencies, &runway_mutex);
 	}
+	gettimeofday(urgent_plane->runway_time, NULL);
 	urgent_plane->completed_action = true;
 	pthread_mutex_unlock(&runway_mutex);
 }
@@ -119,6 +123,7 @@ void* notify_tower_landing(void* plane){
 	while(landing_planes.front()->plane_id != landing_plane->plane_id){//if it is not the first plane in the queue, it waits
 		pthread_cond_wait(&runway_permission_landings, &runway_mutex);
 	}
+	gettimeofday(landing_plane->runway_time, NULL);
 	landing_plane->completed_action = true;
 	pthread_mutex_unlock(&runway_mutex);
 }
@@ -138,6 +143,7 @@ void* notify_tower_taking_off(void* plane){
 	pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
 	while(taking_off_planes.front()->plane_id != taking_off_plane->plane_id)//if it is not the first plane in the queue, it waits
 		pthread_cond_wait(&runway_permission_taking_offs, &runway_mutex);
+	gettimeofday(taking_off_plane->runway_time, NULL);
 	taking_off_plane->completed_action = true;
 	pthread_mutex_unlock(&runway_mutex);
 	return NULL;
@@ -209,7 +215,6 @@ void *let_emergencies(){
 		pthread_sleep(2);
 		pthread_mutex_lock(&emergency_mutex);
 		if(emergency.front()->completed_action){
-			gettimeofday(emergency.front()->runway_time, NULL);
 			emergency.pop();
 		}
 		pthread_mutex_unlock(&emergency_mutex);
@@ -231,7 +236,6 @@ void *let_one_to_take_off(){
 		pthread_sleep(2);
 		pthread_mutex_lock(&taking_off_queue_mutex);
 		if(taking_off_planes.front()->completed_action){
-			gettimeofday(taking_off_planes.front()->runway_time, NULL);
 			taking_off_planes.pop();
 			}
 		pthread_mutex_unlock(&taking_off_queue_mutex);
@@ -256,7 +260,6 @@ void *let_landings(){
 		pthread_sleep(2);
 		pthread_mutex_lock(&landing_queue_mutex);
 		if(landing_planes.front()->completed_action){
-			gettimeofday(landing_planes.front()->runway_time, NULL);
 			landing_planes.pop();
 		}
 		pthread_mutex_lock(&taking_off_queue_mutex);
@@ -279,7 +282,6 @@ void *let_one_to_land(){
 		pthread_sleep(2);
 		pthread_mutex_lock(&landing_queue_mutex);
 		if(landing_planes.front()->completed_action){
-			gettimeofday(landing_planes.front()->runway_time, NULL);
 			landing_planes.pop();
 			}
 		pthread_mutex_unlock(&landing_queue_mutex);
@@ -303,7 +305,6 @@ void *let_taking_offs(){
 		pthread_sleep(2);
 		pthread_mutex_lock(&taking_off_queue_mutex);
 		if(taking_off_planes.front()->completed_action){
-			gettimeofday(taking_off_planes.front()->runway_time, NULL);
 			taking_off_planes.pop();
 			}
 		pthread_mutex_unlock(&taking_off_queue_mutex);
@@ -411,8 +412,8 @@ void run_simulation(double simulation_time, double probability){
 			logfile<<"Plane id: "<<target->plane_id<<endl
 					<<"Status: "<<status<<endl
 					<<"Request time: "<<(target->request_time->tv_sec-start_time.tv_sec)<<endl
-					<<"Runway Time: "<<target->runway_time->tv_sec-start_time.tv_sec<<endl
-					<<"Turnaround Time: "<<target->runway_time->tv_sec-target->request_time->tv_sec<<endl<<endl;
+					<<"Runway Time: "<<target->runway_time->tv_sec-start_time.tv_sec+2<<endl
+					<<"Turnaround Time: "<<target->runway_time->tv_sec+2-target->request_time->tv_sec<<endl<<endl;
 		else
 			logfile<<"Plane id: "<<target->plane_id<<endl
 					<<"Status: "<<status<<endl
@@ -437,19 +438,27 @@ int main(int argc, char* argv[]){
 	create_plane(1);//Initial landing plane
 	create_plane(0);//Initial taking off planem
 	cout<<"Running simulation..."<<endl;
-	if(strcmp("-s", argv[1]) == 0 && strcmp("-p", argv[3]) == 0 && strcmp("-n", argv[5]) == 0){
-		n = atof(argv[6]);
-		run_simulation(atof(argv[2]), atof(argv[4]));
-	}else if(strcmp("-p", argv[1]) == 0 && strcmp("-s", argv[3]) == 0 && strcmp("-n", argv[5]) == 0){
-		n = atof(argv[6]);
-		run_simulation( atof(argv[4]), atof(argv[2]));
-	}else{
-		cout<<"INVALID ARGUMENT"<<endl;
-		return NULL;
-	}
-/*	if(simulation_finished){
-		pthread_t printer;
-		pthread_create(&printer, NULL, print_remaining_planes, NULL);
-	}*/
+	int option;
+    while ((option = getopt(argc, argv, "p:n:s:")) != -1) {
+        switch (option) {
+            case 'p':
+                p = atof(optarg);
+                break;
+            case 'n':
+                n = atof(optarg);
+                break;
+            case 's':
+                simulation_time = atof(optarg);
+                break;
+            default:
+                p = 0.5;
+				n = 0;
+				simulation_time = 60; 
+                break;
+        }
+    }
+	run_simulation(simulation_time, p);
+	
+
 	return 0;
 }

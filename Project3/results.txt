@@ -1,0 +1,95 @@
+Linked Allocation File Name: input_8_600_5_5_0.txt
+
+Number of creation rejected: 397 Total creation: 600.0 Number of extension rejected: 365 Total Extension: 555.0
+
+Average time: 0.0736902705814623
+
+Average creation: 0.09333333333333334
+Avearage extension: 0.04864864864864865
+
+Avearage accession: 0.003436426116838488
+-------------------------------------------------------------
+Continous Allocation File Name: input_8_600_5_5_0.txt
+Number of creation rejected: 73 Total creation: 600.0 Number of extension rejected: 63 Total Extension: 555.0
+Average time: 0.6453655728267127
+Average creation: 0.29333333333333333
+Avearage extension: 1.6792792792792792
+
+Avearage accession: 0.0
+-------------------------------------------------------------
+Linked Allocation File Name: input_1024_200_5_9_9.txt
+
+Number of creation rejected: 162 Total creation: 200.0 Number of extension rejected: 1200 Total Extension: 1396.0
+
+Average time: 0.04970059880239521
+
+Average creation: 0.14
+Avearage extension: 0.08667621776504297
+Avearage shrinking: 0.0
+Avearage accession: 0.0
+-------------------------------------------------------------
+Continous Allocation File Name: input_1024_200_5_9_9.txt
+Number of creation rejected: 0 Total creation: 200.0 Number of extension rejected: 66 Total Extension: 1396.0
+Average time: 0.05958083832335329
+Average creation: 0.01
+Avearage extension: 0.12822349570200572
+Avearage shrinking: 0.0
+Avearage accession: 0.0
+-------------------------------------------------------------
+Linked Allocation File Name: input_1024_200_9_0_0.txt
+
+Number of creation rejected: 79 Total creation: 200.0 Number of extension rejected: 0 Total Extension: 0.0
+
+Average time: 0.0021792613476728077
+
+Average creation: 0.68
+
+
+Avearage accession: 4.91306802765984E-4
+-------------------------------------------------------------
+Continous Allocation File Name: input_1024_200_9_0_0.txt
+Number of creation rejected: 80 Total creation: 200.0 Number of extension rejected: 0 Total Extension: 0.0
+Average time: 0.001338828720319169
+Average creation: 0.25
+
+
+Avearage accession: 2.419869327056339E-4
+-------------------------------------------------------------
+Linked Allocation File Name: input_1024_200_9_0_9.txt
+
+Number of creation rejected: 72 Total creation: 200.0 Number of extension rejected: 0 Total Extension: 0.0
+
+Average time: 0.07429871114480667
+
+Average creation: 0.96
+
+Avearage shrinking: 0.0
+Avearage accession: 6.230529595015577E-4
+-------------------------------------------------------------
+Continous Allocation File Name: input_1024_200_9_0_9.txt
+Number of creation rejected: 0 Total creation: 200.0 Number of extension rejected: 0 Total Extension: 0.0
+Average time: 0.003032600454890068
+Average creation: 0.02
+
+Avearage shrinking: 0.0
+Avearage accession: 6.230529595015577E-4
+-------------------------------------------------------------
+Linked Allocation File Name: input_2048_600_5_5_0.txt
+
+Number of creation rejected: 211 Total creation: 600.0 Number of extension rejected: 182 Total Extension: 535.0
+
+Average time: 0.11842865395725015
+
+Average creation: 0.245
+Avearage extension: 0.10093457943925234
+
+Avearage accession: 0.0016778523489932886
+-------------------------------------------------------------
+Continous Allocation File Name: input_2048_600_5_5_0.txt
+Number of creation rejected: 75 Total creation: 600.0 Number of extension rejected: 65 Total Extension: 535.0
+Average time: 0.58578856152513
+Average creation: 0.275
+Avearage extension: 1.5850467289719625
+
+Avearage accession: 0.0
+-------------------------------------------------------------
